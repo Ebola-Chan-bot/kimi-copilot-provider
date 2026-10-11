@@ -173,7 +173,6 @@ Changing a preset preserves the stored custom URL. Existing users who previously
 
 Open the Command Palette and search for:
 
-- **Kimi: Test Connection**
 - **Kimi: Diagnose Current Configuration**
 - **Kimi: Refresh Models**
 - **Kimi: Refresh Usage**
@@ -182,11 +181,13 @@ Open the Command Palette and search for:
 - **Kimi Code: Set API Endpoint to China (kimi.com)**
 - **Kimi: Set Custom API Endpoint**
 
-The two Moonshot endpoint commands are also present but do not provide complete Open Platform support.
+The two Moonshot endpoint commands are hidden from the Command Palette because they do not provide complete Open Platform support. When invoked from a keybinding, they ask for confirmation before switching. **Kimi: Test Connection** is deprecated and also hidden; it remains available to existing keybindings as an alias for **Kimi: Diagnose Current Configuration**.
+
+Commands, settings, notifications, the usage status bar and diagnostic reports follow the VS Code display language (English or Simplified Chinese).
 
 ### Diagnose the loaded configuration
 
-**Kimi: Diagnose Current Configuration** reuses the key that VS Code has supplied to this provider. **Kimi: Test Connection** is a compatibility alias for the same diagnostic flow; it no longer asks for a separate API key.
+**Kimi: Diagnose Current Configuration** reuses the key that VS Code has supplied to this provider. The deprecated **Kimi: Test Connection** command runs the same diagnostic flow; it no longer asks for a separate API key.
 
 1. Run the command. If no key is loaded, follow the message to open Chat → **Manage Language Models**, configure Kimi, and run it again. After a window reload, the command first asks VS Code to enumerate configured Kimi models. It does not read `.env`, prompt for a key, or store a second copy.
 2. The command queries `/models` live. Select a model from the returned compatible list. If discovery fails, it can offer models already loaded from cache/fallback, but the discovery result remains **FAIL**. An empty successful catalog does not substitute fallback models.
@@ -208,7 +209,7 @@ Usage is read from `<baseUrl>/usages` immediately and every 60 seconds, with a s
 
 Changing credentials/endpoints clears quota data and cancels old quota requests. Hiding the item stops polling. On reload it waits for VS Code to supply credentials; it does not read `.env` or persist a second copy of the API key. A provider callback explicitly clearing its key hides the item; an unconfigured vendor scan is ignored. With multiple Kimi provider configurations, the status bar follows the most recently prepared configuration. Custom and Moonshot endpoints may not implement this subscription quota API; that does not affect chat.
 
-Run `pnpm test` for parser, cache, account isolation, refresh/timeout, and chat regression tests. Development `.env` files are excluded from Git and VSIX packages.
+Run `pnpm test` for parser, cache, account isolation, refresh/timeout, retry, localization and chat regression tests, and `pnpm lint` for ESLint. Development `.env` files are excluded from Git and VSIX packages.
 
 ## Thinking and tool calls
 
@@ -224,7 +225,9 @@ The client uses the OpenAI-compatible Chat Completions endpoint at `<baseUrl>/ch
 
 Chat requests include `model`, `messages`, `stream`, `thinking`, and the output budget as `max_completion_tokens`. Supported reasoning settings become `reasoning_effort`; tool definitions and tool choice are included when supplied. A task ID can be forwarded as `prompt_cache_key`. The API client also supports optional `top_p` and `stop`; the chat provider does not currently set them. It does not set `temperature` or `safety_identifier`.
 
-Conversation content, attached images, supported text/JSON attachments, and tool results passed by VS Code are sent to the configured endpoint. Images are encoded as base64 `image_url` content. Unsupported binary attachments, including video, are replaced with an omission notice.
+Conversation content, attached images, supported text/JSON attachments, and tool results passed by VS Code are sent to the configured endpoint. Images are encoded as base64 `image_url` content. Tool results are sent as their plain text; binary tool result attachments are replaced with an omission notice. Unsupported binary attachments, including video, are replaced with an omission notice.
+
+Chat requests that fail with HTTP 429, 500, 502, 503 or 504 before any response data arrives are retried up to three times. The wait honors the server's `Retry-After` header when present (failing immediately if it exceeds 30 seconds) and otherwise backs off exponentially from about 1 second (1s, 2s, 4s). Retries are logged in the **Kimi** output channel. Diagnostics do not retry, so they report the endpoint's actual behavior.
 
 Authentication uses `Authorization: Bearer <apiKey>`. The client identifies this extension as `kimi-lm-provider/<extension-version> (VSCode/<vscode-version>; dreamyfishmt.dreamyfishmt-kimi-code)`. The extension version and ID are read from `package.json`; the VS Code version comes from the running host. `X-Msh-Platform` is `kimi-lm-provider`, and `X-Msh-Version` is the extension version. By default, the extension does not read hostname or OS/device details, generate a device ID, or send `X-Msh-Device-Name`, `X-Msh-Device-Model`, `X-Msh-Device-Id`, or `X-Msh-Os-Version`. Setting `kimi.sendDeviceInfo` to `true` enables these four headers; the random ID is generated on first use and retained only for the loaded module instance. These client identifiers describe this independent provider, not an official GitHub Copilot client. Server acceptance of these identifiers must be verified with a live request.
 
@@ -235,7 +238,7 @@ Authentication uses `Authorization: Bearer <apiKey>`. The client identifies this
 - **Extension cannot load:** Check the VS Code minimum version and reload the window after installing the extension.
 - **HTTP 401:** Check the server response as well as the key. Kimi can use 401 for model/context entitlement failures. The current chat error prefix still labels all 401 responses as authentication failures.
 - **HTTP 403:** May indicate exhausted quota, concurrency limits, or another rejection. Inspect the response detail.
-- **HTTP 429:** May indicate rate limiting or overload. The current chat error message is generic.
+- **HTTP 429:** May indicate rate limiting or overload. Chat requests are retried automatically; if the error persists, the message includes the server response detail.
 - **Context limit errors:** Check the model, subscription entitlement, and output budget; token estimates are approximate.
 
 See the [Kimi Code error reference](https://www.kimi.com/code/docs/en/kimi-code/error-reference.html) for server-specific diagnostics.
@@ -246,7 +249,7 @@ To create a local VSIX for testing:
 
 ```sh
 pnpm run compile
-pnpm dlx @vscode/vsce package --no-dependencies
+pnpm dlx @vscode/vsce@4.0.0 package --no-dependencies
 ```
 
 `--no-dependencies` is appropriate for this source tree because it has no production npm dependencies; runtime imports use VS Code, Node.js, and compiled local modules. Revisit this flag if production dependencies are added. Packaging also runs `vscode:prepublish`.
@@ -281,7 +284,7 @@ git tag nightly-v0.6.0
 git push origin nightly-v0.6.0
 ```
 
-Commit the workflow and all intended source changes before creating a tag. Each new release needs a new tag; update `package.json` and `package-lock.json` together when changing the version. The workflow validates the version, installs dependencies with `npm ci`, compiles and runs tests, then packages the extension with a pinned version of `vsce`. A failed check prevents publication. Rerunning a successful tag workflow updates the existing release and replaces its VSIX asset.
+Commit the workflow and all intended source changes before creating a tag. Each new release needs a new tag; update `package.json` when changing the version. The workflow validates the version, installs dependencies with `pnpm install --frozen-lockfile` (pnpm is enabled through Corepack from the `packageManager` field), runs ESLint, compiles and runs tests, then packages the extension with a pinned version of `vsce`. A failed check prevents publication. Rerunning a successful tag workflow updates the existing release and replaces its VSIX asset.
 
 The workflow uses GitHub's built-in `GITHUB_TOKEN` with `contents: write`; no personal access token or Marketplace secret is needed. Enable GitHub Actions in the repository and ensure repository/organization policy permits the workflow's write permission. GitHub release channels do not change this extension's VS Code version requirements described above.
 
