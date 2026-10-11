@@ -35,6 +35,10 @@ jobs:
           node-version: '24'
           package-manager-cache: false
 
+      - name: Enable pnpm
+        # Corepack installs the pnpm version pinned in package.json's packageManager field.
+        run: corepack enable
+
       - name: Validate tag and package version
         id: metadata
         run: |
@@ -60,10 +64,13 @@ jobs:
           echo "asset=$package_name-$package_version-$channel.vsix" >> "$GITHUB_OUTPUT"
 
       - name: Install locked dependencies
-        run: npm ci
+        run: pnpm install --frozen-lockfile
+
+      - name: Lint
+        run: pnpm lint
 
       - name: Compile and test
-        run: npm test
+        run: pnpm test
 
       - name: Package VSIX
         env:
@@ -74,7 +81,7 @@ jobs:
           if [[ "$CHANNEL" == nightly ]]; then
             package_flags+=(--pre-release)
           fi
-          npm exec --yes --package=@vscode/vsce@4.0.0 -- vsce package "${package_flags[@]}"
+          pnpm dlx @vscode/vsce@4.0.0 package "${package_flags[@]}"
 
       - name: Publish GitHub Release
         env:

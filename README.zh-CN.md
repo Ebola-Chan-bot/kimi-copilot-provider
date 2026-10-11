@@ -174,7 +174,6 @@ Moonshot 选项只修改 URL，不会适配模型目录或凭据。订阅访问�
 打开命令面板，搜索：
 
 - **Kimi: Diagnose Current Configuration**：诊断当前已加载配置。
-- **Kimi: Test Connection**：兼容旧入口，运行同一诊断流程。
 - **Kimi: Refresh Models**：刷新模型。
 - **Kimi: Refresh Usage**：刷新额度。
 - **Kimi: Show Usage Actions**：打开额度操作菜单。
@@ -182,11 +181,13 @@ Moonshot 选项只修改 URL，不会适配模型目录或凭据。订阅访问�
 - **Kimi Code: Set API Endpoint to China (kimi.com)**：切换中国端点。
 - **Kimi: Set Custom API Endpoint**：设置自定义端点。
 
-也保留了两个 Moonshot 端点切换命令，但不提供完整开放平台支持。
+两个 Moonshot 端点切换命令不提供完整开放平台支持，已从命令面板隐藏；通过快捷键调用时会先确认再切换。**Kimi: Test Connection** 已弃用并同样隐藏，仅作为 **Kimi: Diagnose Current Configuration** 的别名保留给已有快捷键。
+
+命令、设置、通知、额度状态栏和诊断报告会跟随 VS Code 显示语言（英文或简体中文）。
 
 ### 诊断步骤
 
-**Kimi: Diagnose Current Configuration** 复用 VS Code 已提供给扩展的 Key。**Kimi: Test Connection** 是同一流程的兼容别名，不再要求单独输入测试密钥。
+**Kimi: Diagnose Current Configuration** 复用 VS Code 已提供给扩展的 Key。已弃用的 **Kimi: Test Connection** 运行同一流程，不再要求单独输入测试密钥。
 
 1. 运行命令。如果没有已加载的 Key，按照提示打开 Chat → **Manage Language Models** 配置 Kimi，再重新运行。窗口重载后，命令会先让 VS Code 枚举已配置的 Kimi 模型。它不会读取 `.env`、弹出密钥输入框或保存第二份密钥。
 2. 命令实时查询 `/models`，然后让你选择要检查的兼容模型。发现失败时，可使用已经加载的缓存/后备模型继续检查响应，但模型发现仍显示 **FAIL**。服务端成功返回空目录时，不会用后备模型替换。
@@ -210,7 +211,7 @@ VS Code 提供配置好的 Key 后，状态栏显示额度图标和类似 `Kimi 
 
 修改凭据/端点会清空额度并取消旧查询，隐藏状态栏停止轮询。窗口重载后等待 VS Code 提供凭据，不读取 `.env` 或持久化另一份 Key。明确清除 Key 的提供商回调会隐藏状态栏，不带配置的基础扫描会被忽略。多个 Kimi 配置并存时，状态栏跟随最近一次被准备的配置。自定义和 Moonshot 端点可能没有该订阅额度 API，这不影响聊天。
 
-运行 `pnpm test` 检查解析、缓存、账号隔离、刷新/超时、诊断及聊天回归。开发 `.env` 文件不进入 Git 和 VSIX 包。
+运行 `pnpm test` 检查解析、缓存、账号隔离、刷新/超时、重试、本地化、诊断及聊天回归，运行 `pnpm lint` 执行 ESLint 检查。开发 `.env` 文件不进入 Git 和 VSIX 包。
 
 ## 思考与工具调用
 
@@ -226,7 +227,9 @@ VS Code 在助手工具调用历史中返回思考片段时，扩展将它们合
 
 聊天请求包含 `model`、`messages`、`stream`、`thinking` 和作为 `max_completion_tokens` 的输出预算。支持的思考设置发送为 `reasoning_effort`；提供工具定义和工具选择时一并发送。任务 ID 可作为 `prompt_cache_key` 转发。API 客户端也支持可选 `top_p` 和 `stop`，聊天提供商当前不设置它们，也不设置 `temperature` 或 `safety_identifier`。
 
-VS Code 传入的聊天内容、图片、支持的文本/JSON 附件及工具结果会发送到配置的端点。图片编码成 base64 `image_url`。不支持的二进制附件（包括视频）会替换为省略提示。诊断只发送内置小型测试提示，不发送工作区或聊天内容。
+VS Code 传入的聊天内容、图片、支持的文本/JSON 附件及工具结果会发送到配置的端点。图片编码成 base64 `image_url`。工具结果以纯文本发送，其中的二进制附件替换为省略提示。不支持的二进制附件（包括视频）会替换为省略提示。
+
+聊天请求在收到任何响应数据前遇到 HTTP 429、500、502、503 或 504 时，最多自动重试 3 次。服务端返回 `Retry-After` 时按其等待（超过 30 秒则直接报错），否则从约 1 秒开始指数退避（1 秒、2 秒、4 秒）。重试会记录在 **Kimi** 输出通道中。诊断不重试，以便反映端点的真实状态。诊断只发送内置小型测试提示，不发送工作区或聊天内容。
 
 认证使用 `Authorization: Bearer <apiKey>`。客户端标识为 `kimi-lm-provider/<extension-version> (VSCode/<vscode-version>; dreamyfishmt.dreamyfishmt-kimi-code)`，扩展版本和 ID 来自 `package.json`，VS Code 版本来自运行环境。`X-Msh-Platform` 为 `kimi-lm-provider`，`X-Msh-Version` 为扩展版本。
 
@@ -239,7 +242,7 @@ VS Code 传入的聊天内容、图片、支持的文本/JSON 附件及工具结
 - **扩展无法加载**：检查 VS Code 最低版本，并在安装扩展后重载窗口。
 - **HTTP 401**：同时检查 Key 和服务端信息，可能是模型或上下文套餐权限不足。当前普通聊天错误前缀仍将全部 401 标为认证失败；诊断会提示同时检查 Key 和权限。
 - **HTTP 403**：可能是额度耗尽、并发限制或其他拒绝，查看服务端详情和账号控制台。
-- **HTTP 429**：可能是限流或服务过载。当前普通聊天提示较泛化，等待后重试。
+- **HTTP 429**：可能是限流或服务过载。聊天请求会自动重试；仍然失败时，错误信息会附带服务端返回的详情。
 - **上下文超限**：检查模型、套餐权限和输出预算，Token 估算是近似值。
 - **诊断显示 WARN**：小型诊断输出预算可能被思考耗尽。检查输出预算，尝试更快模型或受支持的较低思考强度。
 
@@ -251,7 +254,7 @@ VS Code 传入的聊天内容、图片、支持的文本/JSON 附件及工具结
 
 ```sh
 pnpm run compile
-pnpm dlx @vscode/vsce package --no-dependencies
+pnpm dlx @vscode/vsce@4.0.0 package --no-dependencies
 ```
 
 当前没有生产 npm 依赖，运行时只使用 VS Code、Node.js 和编译后的本地模块，因此可用 `--no-dependencies`。新增生产依赖后需重新评估该选项。打包也会执行 `vscode:prepublish`。
@@ -286,7 +289,7 @@ git tag nightly-v0.6.0
 git push origin nightly-v0.6.0
 ```
 
-创建标签前先提交工作流和需要发布的源码。每次新发布使用新标签；修改版本时同步更新 `package.json` 和 `package-lock.json`。工作流校验版本，用 `npm ci` 安装依赖，编译并运行测试，再用固定版本的 `vsce` 打包。检查失败会阻止发布。重新运行成功标签的工作流会更新已有 Release 并替换 VSIX 附件。
+创建标签前先提交工作流和需要发布的源码。每次新发布使用新标签；修改版本时更新 `package.json`。工作流校验版本，用 `pnpm install --frozen-lockfile` 安装依赖（通过 Corepack 按 `packageManager` 字段启用 pnpm），运行 ESLint，编译并运行测试，再用固定版本的 `vsce` 打包。检查失败会阻止发布。重新运行成功标签的工作流会更新已有 Release 并替换 VSIX 附件。
 
 工作流使用 GitHub 内置 `GITHUB_TOKEN` 和 `contents: write`，不需要个人访问令牌或 Marketplace 密钥。需要启用仓库 GitHub Actions，并允许工作流写权限。GitHub 发布渠道不会改变前述 VS Code 版本要求。
 

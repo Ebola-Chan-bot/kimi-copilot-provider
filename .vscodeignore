@@ -9,6 +9,7 @@ tsconfig.json
 .env
 .env.*
 .gitignore
-package-lock.json
+pnpm-lock.yaml
+eslint.config.mjs
 docs/
 images/demo.gif

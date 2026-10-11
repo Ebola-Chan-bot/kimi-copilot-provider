@@ -4,6 +4,12 @@ import { randomUUID } from "node:crypto";
 import { getSendDeviceInfoEnabled, type ReasoningEffort } from "./config.js";
 
 const CHAT_ENDPOINT = "/chat/completions";
+/** Statuses worth retrying: rate limiting and transient server/gateway failures. */
+const RETRYABLE_STATUSES = new Set([429, 500, 502, 503, 504]);
+const DEFAULT_MAX_RETRIES = 3;
+const BASE_RETRY_DELAY_MS = 1_000;
+/** A server asking for a longer wait than this fails fast instead of stalling the chat. */
+const MAX_RETRY_DELAY_MS = 30_000;
 const EXTENSION_MANIFEST = require("../package.json") as {
 	name: string;
 	publisher: string;
@@ -115,6 +121,9 @@ interface ChatOptions {
 	 * Kimi Coding (`api.kimi.com/coding`) may close the connection without sending `[DONE]`; set false for that endpoint.
 	 */
 	requireSseDoneMarker?: boolean;
+	/** Retries for 429/5xx responses before any data is received. Defaults to 3. */
+	maxRetries?: number;
+	onRetry?: (status: number, delayMs: number, attempt: number) => void;
 }
 
 interface KimiStreamChunk {
@@ -364,23 +373,36 @@ export class KimiApiClient {
 		options?: ChatOptions,
 		signal?: AbortSignal,
 	): Promise<Response> {
-		const response = await fetch(`${baseUrl}${CHAT_ENDPOINT}`, {
-			method: "POST",
-			headers: this.headers,
-			body: this.buildRequestBody(model, messages, stream, options),
-			signal,
-		});
+		const body = this.buildRequestBody(model, messages, stream, options);
+		const maxRetries = options?.maxRetries ?? DEFAULT_MAX_RETRIES;
+		for (let attempt = 0; ; attempt++) {
+			const response = await fetch(`${baseUrl}${CHAT_ENDPOINT}`, {
+				method: "POST",
+				headers: this.headers,
+				body,
+				signal,
+			});
 
-		if (response.ok) {
-			return response;
+			if (response.ok) {
+				return response;
+			}
+
+			const delay = attempt < maxRetries && RETRYABLE_STATUSES.has(response.status)
+				? retryDelayMs(attempt, response.headers.get("retry-after"))
+				: undefined;
+			if (delay === undefined) {
+				const errorBody = await this.parseErrorBody(response);
+				throw new KimiApiError(
+					`Kimi API error: ${response.status} ${response.statusText}`,
+					response.status,
+					errorBody,
+				);
+			}
+
+			await response.body?.cancel().catch(() => {});
+			options?.onRetry?.(response.status, delay, attempt + 1);
+			await sleep(delay, signal);
 		}
-
-		const errorBody = await this.parseErrorBody(response);
-		throw new KimiApiError(
-			`Kimi API error: ${response.status} ${response.statusText}`,
-			response.status,
-			errorBody,
-		);
 	}
 
 	private async parseErrorBody(response: Response): Promise<unknown> {
@@ -391,6 +413,40 @@ export class KimiApiClient {
 			return errorText;
 		}
 	}
+}
+
+/**
+ * Delay before retry number `attempt + 1`: the server's Retry-After when present,
+ * otherwise exponential backoff (1s, 2s, 4s) with jitter. Undefined means do not retry.
+ */
+export function retryDelayMs(attempt: number, retryAfter: string | null, now = Date.now()): number | undefined {
+	if (retryAfter?.trim()) {
+		const seconds = Number(retryAfter);
+		const delay = Number.isFinite(seconds) ? seconds * 1000 : Date.parse(retryAfter) - now;
+		if (Number.isFinite(delay)) {
+			return delay > MAX_RETRY_DELAY_MS ? undefined : Math.max(0, Math.ceil(delay));
+		}
+	}
+	const backoff = BASE_RETRY_DELAY_MS * 2 ** attempt;
+	return Math.round(backoff + Math.random() * backoff * 0.25);
+}
+
+function sleep(ms: number, signal?: AbortSignal): Promise<void> {
+	return new Promise((resolve, reject) => {
+		if (signal?.aborted) {
+			reject(signal.reason);
+			return;
+		}
+		const onAbort = () => {
+			clearTimeout(timer);
+			reject(signal?.reason);
+		};
+		const timer = setTimeout(() => {
+			signal?.removeEventListener("abort", onAbort);
+			resolve();
+		}, ms);
+		signal?.addEventListener("abort", onAbort, { once: true });
+	});
 }
 
 function requestCancellation(token?: vscode.CancellationToken, signal?: AbortSignal) {

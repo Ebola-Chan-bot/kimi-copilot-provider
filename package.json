@@ -1,7 +1,7 @@
 {
 	"name": "dreamyfishmt-kimi-code",
-	"displayName": "Kimi Code Provider for Copilot",
-	"description": "Bring your Kimi Code subscription to Copilot Chat and Agent mode, with automatic model discovery, thinking controls, live quota monitoring, and configuration diagnostics.",
+	"displayName": "%extension.displayName%",
+	"description": "%extension.description%",
 	"version": "0.6.0",
 	"publisher": "dreamyfishmt",
 	"license": "MIT",
@@ -22,15 +22,16 @@
 		"ui"
 	],
 	"main": "./out/extension.js",
+	"l10n": "./l10n",
 	"contributes": {
 		"configuration": {
-			"title": "Kimi",
+			"title": "%config.title%",
 			"properties": {
 				"kimi.showUsageStatusBar": {
 					"type": "boolean",
 					"default": true,
 					"scope": "application",
-					"description": "Show Kimi Code account usage in the status bar. Refreshes every 60 seconds. Disabling stops usage polling."
+					"description": "%config.showUsageStatusBar.description%"
 				},
 				"kimi.endpoint": {
 					"type": "string",
@@ -42,21 +43,21 @@
 						"custom"
 					],
 					"enumItemLabels": [
-						"Kimi Code",
-						"Kimi Code CN",
-						"Moonshot (Not yet supported)",
-						"Moonshot CN (Not yet supported)",
-						"Custom"
+						"%config.endpoint.enum.kimiCode%",
+						"%config.endpoint.enum.kimiCodeCN%",
+						"%config.endpoint.enum.moonshot%",
+						"%config.endpoint.enum.moonshotCN%",
+						"%config.endpoint.enum.custom%"
 					],
 					"default": "kimiCode",
 					"scope": "application",
-					"markdownDescription": "Select an API endpoint. When Custom is selected, the URL from #kimi.apiBaseUrl# is used."
+					"markdownDescription": "%config.endpoint.markdownDescription%"
 				},
 				"kimi.apiBaseUrl": {
 					"type": "string",
 					"default": "https://api.kimi.ai/coding/v1",
 					"scope": "application",
-					"markdownDescription": "Custom API base URL. Only used when #kimi.endpoint# is set to Custom. Do not include `/chat/completions`."
+					"markdownDescription": "%config.apiBaseUrl.markdownDescription%"
 				},
 				"kimi.maxOutputTokens": {
 					"type": "integer",
@@ -64,13 +65,13 @@
 					"maximum": 65536,
 					"default": 32768,
 					"scope": "application",
-					"markdownDescription": "Maximum output tokens allowed per request by this extension. This budget is reserved from the context window; it is not the model's documented maximum output capability."
+					"markdownDescription": "%config.maxOutputTokens.markdownDescription%"
 				},
 				"kimi.sendDeviceInfo": {
 					"type": "boolean",
 					"default": false,
 					"scope": "application",
-					"markdownDescription": "Send hostname, device/OS details, and a random session device ID to the configured API endpoint. Disabled by default; when disabled, this extension does not collect these details or send device information headers."
+					"markdownDescription": "%config.sendDeviceInfo.markdownDescription%"
 				},
 				"kimi.reasoningEffort": {
 					"type": "string",
@@ -81,14 +82,14 @@
 						"max"
 					],
 					"enumItemLabels": [
-						"Default",
-						"Low",
-						"High",
-						"Max"
+						"%config.reasoningEffort.enum.default%",
+						"%config.reasoningEffort.enum.low%",
+						"%config.reasoningEffort.enum.high%",
+						"%config.reasoningEffort.enum.max%"
 					],
 					"default": "default",
 					"scope": "application",
-					"markdownDescription": "Reasoning effort for supported Kimi Code models. Model Default omits the parameter and uses the server default. Ignored when thinking is disabled or the model does not support configurable reasoning effort."
+					"markdownDescription": "%config.reasoningEffort.markdownDescription%"
 				}
 			}
 		},
@@ -101,8 +102,8 @@
 					"properties": {
 						"apiKey": {
 							"type": "string",
-							"description": "API key from kimi.com/code/console",
-							"title": "API key",
+							"description": "%provider.apiKey.description%",
+							"title": "%provider.apiKey.title%",
 							"secret": true
 						}
 					},
@@ -113,46 +114,82 @@
 			}
 		],
 		"commands": [
-			{ "command": "kimi.diagnoseConfiguration", "title": "Kimi: Diagnose Current Configuration" },
-			{ "command": "kimi.refreshModels", "title": "Kimi: Refresh Models" },
-			{ "command": "kimi.refreshUsage", "title": "Kimi: Refresh Usage" },
-			{ "command": "kimi.usageActions", "title": "Kimi: Show Usage Actions" },
+			{
+				"command": "kimi.diagnoseConfiguration",
+				"title": "%command.diagnoseConfiguration%"
+			},
+			{
+				"command": "kimi.refreshModels",
+				"title": "%command.refreshModels%"
+			},
+			{
+				"command": "kimi.refreshUsage",
+				"title": "%command.refreshUsage%"
+			},
+			{
+				"command": "kimi.usageActions",
+				"title": "%command.usageActions%"
+			},
 			{
 				"command": "kimi.testConnection",
-				"title": "Kimi: Test Connection"
+				"title": "%command.testConnection%"
 			},
 			{
 				"command": "kimi.setBaseUrl.kimiCode",
-				"title": "Kimi Code: Set API Endpoint to Global (kimi.ai)"
+				"title": "%command.setBaseUrl.kimiCode%"
 			},
 			{
 				"command": "kimi.setBaseUrl.kimiCodeCN",
-				"title": "Kimi Code: Set API Endpoint to China (kimi.com)"
+				"title": "%command.setBaseUrl.kimiCodeCN%"
 			},
 			{
 				"command": "kimi.setBaseUrl.moonshot",
-				"title": "Moonshot Platform: Set API Endpoint to Moonshot (moonshot.ai)"
+				"title": "%command.setBaseUrl.moonshot%"
 			},
 			{
 				"command": "kimi.setBaseUrl.moonshotCN",
-				"title": "Moonshot Platform: Set API Endpoint to Moonshot China (moonshot.cn)"
+				"title": "%command.setBaseUrl.moonshotCN%"
 			},
 			{
 				"command": "kimi.setBaseUrl.custom",
-				"title": "Kimi: Set Custom API Endpoint"
+				"title": "%command.setBaseUrl.custom%"
 			}
-		]
+		],
+		"menus": {
+			"commandPalette": [
+				{
+					"command": "kimi.testConnection",
+					"when": "false"
+				},
+				{
+					"command": "kimi.setBaseUrl.moonshot",
+					"when": "false"
+				},
+				{
+					"command": "kimi.setBaseUrl.moonshotCN",
+					"when": "false"
+				}
+			]
+		}
 	},
 	"scripts": {
 		"test": "tsc -p ./ && node --test tests/*.cjs",
+		"lint": "eslint .",
+		"lint:fix": "eslint . --fix",
 		"vscode:prepublish": "tsc -p ./",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
-		"build:local": "pnpm dlx @vscode/vsce package --no-dependencies"
+		"build:local": "pnpm dlx @vscode/vsce@4.0.0 package --no-dependencies"
 	},
 	"devDependencies": {
+		"@eslint/js": "10.0.1",
+		"@stylistic/eslint-plugin": "5.10.0",
 		"@types/node": "20.19.30",
 		"@types/vscode": "^1.120.0",
-		"typescript": "5.9.3"
-	}
+		"eslint": "10.12.0",
+		"globals": "17.13.0",
+		"typescript": "5.9.3",
+		"typescript-eslint": "8.71.1"
+	},
+	"packageManager": "pnpm@10.28.0"
 }
