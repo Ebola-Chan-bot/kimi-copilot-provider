@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Kimi Code Demo</title>
+<!-- Mock VS Code window used to record images/demo.gif. See docs/demo/README.md. -->
+<link rel="stylesheet" href="codicons/codicon.css">
+<style>
+	:root {
+		--bg: #1f1f1f; --panel: #181818; --border: #2b2b2b; --fg: #cccccc; --muted: #9d9d9d;
+		--accent: #0078d4; --select: #04395e; --widget: #252526; --input: #313131; --line: #454545;
+		--kimi: #2fe08a; --navy: #171c33;
+	}
+	* { box-sizing: border-box; }
+	html, body { margin: 0; width: 1000px; height: 620px; overflow: hidden; background: var(--bg); }
+	body { font: 13px/1.4 "Inter", "Segoe UI", system-ui, sans-serif; color: var(--fg); position: relative; }
+	.codicon { font-size: 16px; vertical-align: middle; }
+	.mono { font-family: "DejaVu Sans Mono", Menlo, Consolas, monospace; }
+	.klogo { width: 15px; height: 15px; vertical-align: middle; color: currentColor; flex: none; }
+
+	#titlebar { height: 30px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; align-items: center; padding: 0 12px; position: relative; }
+	.dots { display: flex; gap: 8px; }
+	.dots i { width: 12px; height: 12px; border-radius: 50%; display: block; }
+	#titlebar .title { position: absolute; left: 50%; transform: translateX(-50%); background: #2a2a2a; border: 1px solid #3a3a3a; border-radius: 6px; padding: 1px 90px; font-size: 12px; color: var(--muted); }
+
+	#main { display: flex; height: calc(620px - 30px - 22px); }
+	#activity { width: 44px; background: var(--panel); border-right: 1px solid var(--border); display: flex; flex-direction: column; align-items: center; padding-top: 6px; gap: 2px; }
+	#activity .codicon { font-size: 22px; color: #868686; padding: 8px 0; }
+	#activity .codicon.on { color: #fff; border-left: 2px solid var(--accent); width: 44px; text-align: center; }
+	#sidebar { width: 140px; background: var(--panel); border-right: 1px solid var(--border); font-size: 12.5px; }
+	.sb-head { padding: 9px 14px; font-size: 11px; letter-spacing: .5px; color: var(--muted); }
+	.tree div { padding: 2px 0 2px 10px; white-space: nowrap; }
+	.tree .codicon { font-size: 14px; margin-right: 4px; color: #c5c5c5; }
+	.tree .sel { background: #37373d; }
+
+	#editor { flex: 1; display: flex; flex-direction: column; min-width: 0; position: relative; overflow: hidden; }
+	#tabs { height: 35px; background: var(--panel); display: flex; border-bottom: 1px solid var(--border); }
+	.tab { padding: 8px 14px; font-size: 12.5px; color: var(--muted); border-right: 1px solid var(--border); }
+	.tab.on { background: var(--bg); color: #fff; border-top: 1px solid var(--accent); }
+	.tab .ts { color: #519aba; font-weight: 700; font-size: 10px; margin-right: 5px; }
+	#code { padding: 10px 0; font-size: 11.5px; line-height: 20px; }
+	.ln { display: flex; white-space: pre; }
+	.ln .n { flex: none; width: 44px; text-align: right; padding-right: 18px; color: #6e7681; }
+	.ln.add { background: rgba(46, 160, 67, .18); }
+	.ln.add .n { color: #8ddb8c; box-shadow: inset 3px 0 0 #2ea043; }
+	.k { color: #c586c0; } .kw { color: #569cd6; } .s { color: #ce9178; } .f { color: #dcdcaa; } .t { color: #4ec9b0; } .v { color: #9cdcfe; }
+
+	#chat { width: 380px; background: var(--panel); border-left: 1px solid var(--border); display: flex; flex-direction: column; }
+	#chat-head { height: 35px; display: flex; align-items: center; padding: 0 12px; font-size: 11px; letter-spacing: .5px; color: var(--muted); border-bottom: 1px solid var(--border); gap: 6px; }
+	#chat-body { flex: 1; overflow: hidden; padding: 12px 14px; display: flex; flex-direction: column; gap: 10px; }
+	#welcome { margin: auto; text-align: center; color: var(--muted); }
+	#welcome .codicon { font-size: 40px; color: #6e6e6e; display: block; margin-bottom: 8px; }
+	#welcome b { color: var(--fg); font-size: 15px; display: block; margin-bottom: 4px; font-weight: 600; }
+	.msg-user { align-self: flex-end; background: #2b2d31; border: 1px solid #3c3c3c; border-radius: 10px; padding: 7px 10px; max-width: 88%; }
+	.msg-bot { font-size: 13px; }
+	.thinking { border: 1px solid #333; border-radius: 6px; padding: 6px 8px; color: var(--muted); font-size: 12px; margin-bottom: 8px; }
+	.thinking .codicon { font-size: 14px; }
+	.thinking .body { margin-top: 4px; font-style: italic; }
+	code.inl { background: #2d2d2d; border-radius: 3px; padding: 0 4px; font-size: 12px; }
+	.tool { display: inline-flex; align-items: center; gap: 6px; border: 1px solid #333; border-radius: 6px; padding: 4px 8px; margin: 8px 0; font-size: 12px; }
+	.tool .add { color: #3fb950; } .tool .codicon { color: #3fb950; font-size: 14px; }
+
+	#input-wrap { padding: 8px 10px 6px; }
+	#input { border: 1px solid #3c3c3c; background: #1f1f1f; border-radius: 8px; padding: 8px 8px 6px; }
+	#input.focus { border-color: var(--accent); }
+	#prompt { min-height: 36px; color: #fff; padding: 0 2px; }
+	#prompt .ph { color: #7a7a7a; }
+	.caret { display: inline-block; width: 1px; height: 15px; background: #fff; vertical-align: -3px; }
+	#toolbar { display: flex; align-items: center; gap: 2px; margin-top: 6px; font-size: 12px; color: var(--fg); }
+	.pick { display: inline-flex; align-items: center; gap: 4px; padding: 2px 5px; border-radius: 4px; white-space: nowrap; height: 22px; }
+	.pick .codicon { font-size: 14px; }
+	#model-chip { display: inline-flex; align-items: stretch; border-radius: 4px; overflow: hidden; height: 22px; }
+	#model-chip > span { display: inline-flex; align-items: center; gap: 5px; padding: 0 6px; background: #2b2b2b; white-space: nowrap; }
+	#model-chip #chip-detail { color: var(--muted); border-left: 1px solid #1f1f1f; }
+	#model-chip.hot > span { background: #3a3d41; }
+	#toolbar .grow { flex: 1; }
+	#below { display: flex; align-items: center; gap: 12px; font-size: 12px; color: var(--fg); padding: 6px 4px 0; }
+	#below .mut { color: var(--muted); border-left: 1px solid #3c3c3c; padding-left: 10px; }
+	#below .codicon { font-size: 14px; }
+
+	.menu { position: absolute; background: var(--widget); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 8px 24px rgba(0,0,0,.55); padding: 4px; font-size: 12.5px; z-index: 20; display: none; }
+	.menu .it { display: flex; align-items: center; gap: 8px; padding: 5px 8px; border-radius: 4px; white-space: nowrap; }
+	.menu .it .ck { width: 14px; font-size: 14px; flex: none; }
+	.menu .it .d { color: var(--muted); margin-left: auto; padding-left: 16px; font-size: 11.5px; display: flex; align-items: center; gap: 4px; }
+	.menu .it.hi { background: #37373d; }
+	.menu .it .d.on { color: #fff; border-radius: 3px; }
+	.menu .sep { height: 1px; background: var(--line); margin: 4px 6px; }
+	.menu .grp { color: var(--muted); font-size: 11px; padding: 4px 8px 2px; }
+
+	#picker { width: 300px; padding: 6px; }
+	#picker .ptabs { display: flex; align-items: center; gap: 4px; padding: 0 2px 6px; border-bottom: 1px solid #333; margin-bottom: 4px; }
+	#picker .ptab { display: inline-flex; align-items: center; gap: 5px; padding: 4px 6px; border-radius: 5px; color: var(--fg); }
+	#picker .ptab.on { background: #3a3d41; color: #fff; }
+	#picker .ptab.hi { background: #37373d; }
+	#picker .ptabs .grow { flex: 1; }
+
+	/* Language Models editor */
+	#lm { position: absolute; top: 30px; left: 0; right: 0; bottom: 22px; background: rgba(0,0,0,.4); z-index: 30; display: none; padding: 12px; }
+	#lm .win { height: 100%; background: var(--bg); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 12px 40px rgba(0,0,0,.6); display: flex; flex-direction: column; }
+	#lm .head { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-bottom: 1px solid var(--border); font-weight: 600; }
+	#lm .head .grow { flex: 1; }
+	#lm .head .codicon { color: var(--fg); }
+	#lm .head .tools { display: flex; gap: 10px; color: var(--muted); }
+	#lm .bar { display: flex; align-items: center; gap: 6px; padding: 12px 16px; }
+	#lm .search { flex: 1; background: var(--input); border: 1px solid #3c3c3c; border-radius: 4px; padding: 5px 8px; color: #8b8b8b; display: flex; align-items: center; }
+	#lm .search .grow { flex: 1; }
+	#lm .search .codicon { color: var(--muted); font-size: 14px; margin-left: 8px; }
+	.btn { padding: 5px 10px; border-radius: 4px; white-space: nowrap; }
+	.btn.primary { background: var(--accent); color: #fff; }
+	.btn.primary.hot { background: #026ec1; outline: 1px solid #4ba0e6; }
+	.btn.sec { background: #313131; color: var(--fg); border: 1px solid #3c3c3c; }
+	#lm table { width: calc(100% - 32px); margin: 0 16px; border-collapse: collapse; font-size: 12.5px; table-layout: fixed; }
+	#lm th { text-align: left; font-weight: 600; padding: 7px 6px; border-bottom: 1px solid var(--border); }
+	#lm td { padding: 6px; height: 30px; }
+	#lm tr.g td { background: #252526; font-weight: 600; }
+	#lm tr.new td { background: rgba(47, 224, 138, .09); }
+	#lm td.ic { width: 22px; color: var(--muted); padding: 0 2px; }
+	#lm td.ic .codicon { font-size: 14px; }
+	.tag { display: inline-block; border: 1px solid #4a4a4a; border-radius: 3px; padding: 0 6px; font-size: 11.5px; margin-right: 4px; color: var(--fg); }
+	#add-menu { width: 196px; }
+	#add-menu .it.hi { background: var(--select); outline: 1px solid var(--accent); }
+
+	.quick { position: absolute; top: 38px; left: 50%; transform: translateX(-50%); width: 560px; background: var(--widget); border: 1px solid var(--line); border-radius: 8px; box-shadow: 0 10px 30px rgba(0,0,0,.6); padding: 6px; z-index: 35; display: none; }
+	.quick .title { text-align: center; font-size: 12px; color: var(--muted); padding: 2px 0 6px; }
+	.quick .box { background: var(--input); border: 1px solid var(--accent); border-radius: 4px; padding: 5px 8px; min-height: 28px; color: #fff; }
+	.quick .box .ph { color: #8b8b8b; }
+	.quick .hint { font-size: 12px; color: var(--muted); padding: 6px 4px 2px; }
+	.quick .row { display: flex; align-items: center; padding: 4px 8px; border-radius: 4px; margin-top: 2px; white-space: nowrap; }
+	.quick .row.hi { background: var(--select); outline: 1px solid var(--accent); }
+	.quick .row .m { color: #2aaaff; font-weight: 600; }
+
+	#toast { position: absolute; right: 12px; bottom: 34px; width: 350px; background: var(--widget); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.55); padding: 10px 12px; display: none; gap: 8px; z-index: 25; font-size: 12.5px; }
+	#toast .codicon { color: #3794ff; }
+	#toast .src { color: var(--muted); font-size: 11.5px; margin-top: 4px; }
+
+	#statusbar { height: 22px; background: var(--accent); color: #fff; display: flex; align-items: center; font-size: 12px; padding: 0 6px; gap: 2px; }
+	#statusbar .si { padding: 0 6px; display: flex; align-items: center; gap: 4px; height: 22px; }
+	#statusbar .si .codicon { font-size: 14px; }
+	#statusbar .si.hot { background: rgba(255,255,255,.18); }
+	#statusbar .grow { flex: 1; }
+
+	#hover { position: absolute; right: 40px; bottom: 28px; width: 300px; background: var(--widget); border: 1px solid var(--line); border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.55); padding: 10px 12px; font-size: 12.5px; z-index: 25; display: none; }
+	#hover p { margin: 0 0 8px; }
+	#hover .bar { font-family: "DejaVu Sans Mono", monospace; background: #2d2d2d; border-radius: 3px; padding: 0 4px; letter-spacing: 1px; }
+	#hover .mut { color: var(--muted); font-size: 12px; }
+	#hover hr { border: 0; border-top: 1px solid var(--line); margin: 8px 0; }
+	#hover a { color: #3794ff; text-decoration: none; }
+
+	#caption { position: absolute; left: 58px; bottom: 40px; display: flex; align-items: center; gap: 10px; background: rgba(23, 28, 51, .95); border: 1px solid var(--kimi); border-radius: 999px; padding: 7px 16px 7px 7px; font-size: 15px; font-weight: 600; color: #fff; z-index: 40; box-shadow: 0 6px 24px rgba(0,0,0,.5); }
+	#caption .num { width: 28px; height: 28px; border-radius: 50%; background: var(--kimi); color: var(--navy); display: grid; place-items: center; font-size: 14px; font-weight: 800; }
+	#keys { position: absolute; left: 50%; bottom: 96px; transform: translateX(-50%); display: none; gap: 6px; z-index: 45; }
+	#keys kbd { font: 600 16px "Inter", sans-serif; background: #f3f3f3; color: #222; border-radius: 6px; padding: 5px 10px; box-shadow: 0 3px 0 #9a9a9a; }
+
+	#cursor { position: absolute; z-index: 100; width: 18px; height: 26px; pointer-events: none; }
+	#ripple { position: absolute; z-index: 99; width: 34px; height: 34px; margin: -17px 0 0 -17px; border-radius: 50%; border: 3px solid rgba(47, 224, 138, .95); display: none; }
+
+	#endcard { position: absolute; inset: 0; z-index: 200; background: #0d1020; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 14px; color: #fff; text-align: center; }
+	#endcard .logo { width: 104px; height: 104px; }
+	#endcard h1 { margin: 0; font-size: 34px; }
+	#endcard p { margin: 0; color: #b9c3e6; font-size: 17px; }
+	#endcard .id { margin-top: 6px; font-family: "DejaVu Sans Mono", monospace; background: rgba(255,255,255,.08); border: 1px solid rgba(255,255,255,.2); border-radius: 8px; padding: 8px 14px; font-size: 15px; color: #fff; }
+</style>
+</head>
+<body>
+<!-- Striped-globe glyph VS Code shows for the Kimi vendor. -->
+<svg width="0" height="0" style="position:absolute">
+	<symbol id="kimi-logo" viewBox="0 0 16 16">
+		<clipPath id="kimi-clip"><circle cx="8" cy="8" r="7.2"/></clipPath>
+		<g clip-path="url(#kimi-clip)" fill="currentColor" transform="rotate(-18 8 8)">
+			<rect x="-2" y="0.6" width="20" height="2"/><rect x="-2" y="3.6" width="20" height="2"/>
+			<rect x="-2" y="6.6" width="20" height="2"/><rect x="-2" y="9.6" width="20" height="2"/>
+			<rect x="-2" y="12.6" width="20" height="2"/>
+		</g>
+	</symbol>
+</svg>
+
+<div id="titlebar">
+	<div class="dots"><i style="background:#ff5f57"></i><i style="background:#febc2e"></i><i style="background:#28c840"></i></div>
+	<div class="title">my-app</div>
+</div>
+
+<div id="main">
+	<div id="activity">
+		<span class="codicon codicon-files on"></span>
+		<span class="codicon codicon-search"></span>
+		<span class="codicon codicon-source-control"></span>
+		<span class="codicon codicon-debug-alt"></span>
+		<span class="codicon codicon-extensions"></span>
+	</div>
+	<div id="sidebar">
+		<div class="sb-head">EXPLORER</div>
+		<div class="tree">
+			<div><span class="codicon codicon-chevron-down"></span>MY-APP</div>
+			<div style="padding-left:20px"><span class="codicon codicon-chevron-down"></span>src</div>
+			<div style="padding-left:40px">db.ts</div>
+			<div style="padding-left:40px" class="sel">server.ts</div>
+			<div style="padding-left:20px"><span class="codicon codicon-chevron-right"></span>tests</div>
+			<div style="padding-left:34px">package.json</div>
+			<div style="padding-left:34px">README.md</div>
+		</div>
+	</div>
+
+	<div id="editor">
+		<div id="tabs"><div class="tab on"><span class="ts">TS</span>server.ts</div><div class="tab"><span class="ts">TS</span>db.ts</div></div>
+		<div id="code" class="mono"></div>
+	</div>
+
+	<div id="chat">
+		<div id="chat-head"><span class="codicon codicon-copilot" style="font-size:14px"></span>CHAT</div>
+		<div id="chat-body">
+			<div id="welcome"><span class="codicon codicon-copilot"></span><b>Build with Agent</b>Ask anything, or let the agent edit your code.</div>
+			<div id="u1" class="msg-user" style="display:none">Add input validation to createUser</div>
+			<div id="b1" class="msg-bot" style="display:none">
+				<div class="thinking"><span id="th-icon" class="codicon codicon-chevron-down"></span> <span id="th-title">Thinking…</span><div id="th-body" class="body"></div></div>
+				<div id="b1-text"></div>
+				<div id="b1-tool" class="tool" style="display:none"><span class="codicon codicon-check"></span>Edited <b>server.ts</b> <span class="add">+2</span></div>
+				<div id="b1-tail"></div>
+			</div>
+		</div>
+		<div id="input-wrap">
+			<div id="input">
+				<div id="prompt"></div>
+				<div id="toolbar">
+					<span class="pick"><span class="codicon codicon-add"></span></span>
+					<span class="pick"><span class="codicon codicon-code"></span>Agent</span>
+					<span id="model-chip"><span id="chip-name"></span><span id="chip-detail"></span></span>
+					<span class="grow"></span>
+					<span class="pick"><span class="codicon codicon-mic"></span></span>
+					<span id="send" class="pick"><span class="codicon codicon-arrow-up"></span></span>
+				</div>
+			</div>
+			<div id="below">
+				<span><span class="codicon codicon-copilot"></span> Copilot</span>
+				<span><span class="codicon codicon-comment"></span> Interactive</span>
+				<span class="mut">Manual permissions</span>
+				<span class="codicon codicon-radio-tower" style="color:var(--muted)"></span>
+			</div>
+		</div>
+	</div>
+</div>
+
+<div id="statusbar">
+	<span class="si"><span class="codicon codicon-git-branch"></span>main</span>
+	<span class="grow"></span>
+	<span class="si">Ln 6, Col 3</span>
+	<span class="si">TypeScript</span>
+	<span class="si"><span class="codicon codicon-copilot"></span></span>
+	<span id="usage" class="si" style="display:none"><span class="codicon codicon-dashboard"></span><span id="usage-text"></span></span>
+	<span class="si"><span class="codicon codicon-bell"></span></span>
+</div>
+
+<!-- Command palette / quick inputs -->
+<div id="palette" class="quick">
+	<div class="box mono" id="pal-box"></div>
+	<div id="pal-rows"></div>
+</div>
+<div id="apikey" class="quick">
+	<div class="title">Kimi · API key</div>
+	<div class="box mono" id="key-box"></div>
+	<div class="hint">API key from kimi.com/code/console · Press Enter to confirm</div>
+</div>
+
+<!-- Model picker -->
+<div id="picker" class="menu">
+	<div class="ptabs">
+		<span id="ptab-copilot" class="ptab"><span class="codicon codicon-copilot"></span></span>
+		<span class="ptab"><span class="codicon codicon-sparkle"></span></span>
+		<span id="ptab-kimi" class="ptab"><svg class="klogo"><use href="#kimi-logo"/></svg>Kimi</span>
+		<span id="ptab-add" class="ptab"><span class="codicon codicon-add"></span></span>
+		<span class="grow"></span>
+		<span class="ptab"><span class="codicon codicon-search"></span></span>
+	</div>
+	<div id="plist-copilot">
+		<div class="it"><span class="ck codicon codicon-check"></span>Auto<span class="d">1x</span></div>
+	</div>
+	<div id="plist-kimi">
+		<div id="pm-k27" class="it"><span class="ck"></span>K2.7 Code Highspeed<span class="d">262K</span></div>
+		<div id="pm-k28" class="it"><span class="ck" id="ck-k28"></span>K2.8 Preview<span class="d" id="pm-k28-d">High · 1M <span id="pm-k28-more" class="codicon codicon-chevron-right" style="font-size:13px"></span></span></div>
+		<div id="pm-k3" class="it"><span class="ck"></span>K3<span class="d"></span></div>
+		<div id="pm-k3s" class="it"><span class="ck"></span>K3-256k<span class="d"></span></div>
+	</div>
+</div>
+<div id="effort-menu" class="menu" style="width:150px">
+	<div class="grp">Thinking Effort</div>
+	<div class="it"><span class="ck"></span>Low</div>
+	<div class="it"><span class="ck codicon codicon-check"></span>High</div>
+	<div id="em-max" class="it"><span class="ck"></span>Max</div>
+</div>
+
+<!-- Language Models editor -->
+<div id="lm">
+	<div class="win">
+		<div class="head"><span class="codicon codicon-settings"></span>Language Models<span class="grow"></span>
+			<span class="tools"><span class="codicon codicon-screen-full"></span><span id="lm-close" class="codicon codicon-close"></span></span></div>
+		<div class="bar">
+			<div class="search">Type to search…<span class="grow"></span><span class="codicon codicon-clear-all"></span><span class="codicon codicon-filter"></span></div>
+			<span id="add-models" class="btn primary">Add Models</span>
+			<span class="btn sec">Install Model Providers</span>
+		</div>
+		<table>
+			<thead><tr><th style="width:24px"></th><th style="width:26px"></th><th style="width:40%">Name</th><th style="width:18%">Context Size</th><th style="width:24%">Capabilities</th><th>Pricing</th></tr></thead>
+			<tbody id="lm-rows"></tbody>
+		</table>
+	</div>
+</div>
+<div id="add-menu" class="menu">
+	<div class="it">GitHub Copilot</div>
+	<div class="sep"></div>
+	<div class="it">Anthropic</div><div class="it">Azure</div><div class="it">Google</div>
+	<div id="add-kimi" class="it">Kimi</div>
+	<div class="it">OpenAI</div><div class="it">OpenRouter</div><div class="it">xAI</div>
+	<div class="sep"></div>
+	<div class="it">Custom Endpoint</div>
+</div>
+
+<div id="toast"><span class="codicon codicon-info"></span><div><div id="toast-text"></div><div class="src">Source: Kimi Code Provider for Copilot</div></div></div>
+
+<div id="hover">
+	<p><span class="codicon codicon-dashboard" style="font-size:14px"></span> <b>Kimi Code Usage</b></p>
+	<p class="mut">Account quota · percentage used</p>
+	<p><b>5-hour limit · <span id="hv-5h"></span> used</b><br><span class="bar" id="hv-5h-bar"></span></p>
+	<p class="mut">Resets in 3h 41m</p>
+	<p><b>Weekly limit · 9% used</b><br><span class="bar">■□□□□□□□□□</span></p>
+	<p class="mut">Resets in 4d 7h</p>
+	<hr>
+	<p class="mut">Updated just now · Every 60s</p>
+	<p style="margin:0"><a><span class="codicon codicon-refresh" style="font-size:13px"></span> Refresh</a> · <a><span class="codicon codicon-link-external" style="font-size:13px"></span> Open Console</a></p>
+</div>
+
+<div id="caption"><span class="num" id="cap-num">1</span><span id="cap-text"></span></div>
+<div id="keys"></div>
+<div id="ripple"></div>
+<svg id="cursor" viewBox="0 0 18 26"><path d="M1 1 L1 20 L6 15.5 L9.5 24 L13 22.5 L9.5 14.5 L16 14.5 Z" fill="#fff" stroke="#000" stroke-width="1.3" stroke-linejoin="round"/></svg>
+
+<div id="endcard">
+	<img class="logo" src="../../images/icon.png" alt="">
+	<h1>Kimi Code Provider for Copilot</h1>
+	<p>Your Kimi Code subscription in VS Code Chat and Agent mode</p>
+	<div class="id">ext install dreamyfishmt.dreamyfishmt-kimi-code</div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const ease = x => x < .5 ? 2 * x * x : 1 - Math.pow(-2 * x + 2, 2) / 2;
+const typed = (text, t0, t1, t) => text.slice(0, Math.round(clamp((t - t0) / (t1 - t0), 0, 1) * text.length));
+const show = (el, on, display = "block") => { (typeof el === "string" ? $(el) : el).style.display = on ? display : "none"; };
+const between = (t, a, b) => t >= a && t < b;
+const esc = s => s.replace(/&/g, "&amp;").replace(/</g, "&lt;");
+const KIMI_ICON = '<svg class="klogo"><use href="#kimi-logo"/></svg>';
+
+const CODE = [
+	`<span class="k">import</span> { <span class="v">db</span> } <span class="k">from</span> <span class="s">"./db"</span>;`,
+	``,
+	`<span class="kw">export</span> <span class="kw">async</span> <span class="kw">function</span> <span class="f">createUser</span>(<span class="v">body</span>: <span class="t">unknown</span>) {`,
+	`  <span class="kw">const</span> { <span class="v">name</span>, <span class="v">email</span> } = <span class="v">body</span> <span class="kw">as</span> { <span class="v">name</span>: <span class="t">string</span>; <span class="v">email</span>: <span class="t">string</span> };`,
+	`  <span class="k">return</span> <span class="v">db</span>.<span class="v">users</span>.<span class="f">insert</span>({ <span class="v">name</span>, <span class="v">email</span> });`,
+	`}`,
+	``,
+	`<span class="kw">export</span> <span class="kw">async</span> <span class="kw">function</span> <span class="f">getUser</span>(<span class="v">id</span>: <span class="t">string</span>) {`,
+	`  <span class="k">return</span> <span class="v">db</span>.<span class="v">users</span>.<span class="f">find</span>(<span class="v">id</span>);`,
+	`}`,
+];
+const ADDED = [
+	`  <span class="k">if</span> (!<span class="v">name</span>?.<span class="f">trim</span>()) <span class="k">throw</span> <span class="t">Error</span>(<span class="s">"name required"</span>);`,
+	`  <span class="k">if</span> (!<span class="v">email</span>?.<span class="f">includes</span>(<span class="s">"@"</span>)) <span class="k">throw</span> <span class="t">Error</span>(<span class="s">"bad email"</span>);`,
+];
+function renderCode(edited) {
+	const lines = CODE.map(html => ({ html }));
+	if (edited) lines.splice(4, 0, ...ADDED.map(html => ({ html, add: true })));
+	$("code").innerHTML = lines.map((l, i) => `<div class="ln${l.add ? " add" : ""}"><span class="n">${i + 1}</span><span>${l.html}</span></div>`).join("");
+}
+
+const COMMANDS = [
+	"Kimi Code: Set API Endpoint to Global (kimi.ai)",
+	"Kimi Code: Set API Endpoint to China (kimi.com)",
+	"Kimi: Diagnose Current Configuration",
+	"Kimi: Refresh Models",
+	"Kimi: Show Usage Actions",
+];
+// Names, context sizes, and capabilities as reported by the Kimi Code models endpoint.
+const KIMI_MODELS = [["K2.7 Code Highspeed", "262K"], ["K2.8 Preview", "1M"], ["K3", "1M"], ["K3-256k", "262K"]];
+const TAGS = '<span class="tag">Tools</span><span class="tag">Vision</span>';
+function renderModelTable(withKimi, fresh) {
+	const group = (open, name) => `<tr class="g"><td class="ic"><span class="codicon codicon-chevron-${open ? "down" : "right"}"></span></td><td class="ic"><span class="codicon codicon-eye"></span></td><td colspan="4">${name}</td></tr>`;
+	let html = group(false, "Copilot");
+	if (withKimi) {
+		html += group(true, "Kimi");
+		html += KIMI_MODELS.map(([name, ctx]) => `<tr${fresh ? ' class="new"' : ""}><td></td><td class="ic"><span class="codicon codicon-eye"></span></td><td>${name}</td><td>${ctx}</td><td>${TAGS}</td><td></td></tr>`).join("");
+	}
+	$("lm-rows").innerHTML = html;
+}
+
+// Timeline (seconds).
+const S = {
+	step1: 0, palOpen: .9, palType: [1.3, 2.4], pick1: 3.2, toast: [3.35, 5.6],
+	step2: 5.6, chipClick: 6.5, plusClick: 7.3, addClick: 8.2, kimiClick: 9.0, keyType: [9.4, 10.5], keyEnter: 10.8, closeClick: 12.0,
+	step3: 12.4, chipClick2: 13.0, moreClick: 14.0, maxClick: 14.9,
+	step4: 15.6, promptType: [15.9, 17.5], send: 17.8, think: [18.1, 19.5], answer: [19.7, 20.9], edit: 21.0, tail: [21.3, 22.3],
+	step5: 23.3, hover: 24.5,
+	end: 28.4, total: 31.4,
+};
+
+const CAPTIONS = [
+	[S.step1, "1", "Pick your Kimi Code endpoint from the Command Palette"],
+	[S.step2, "2", "Add Models → Kimi, then paste your API key"],
+	[S.step3, "3", "Choose a Kimi model and its thinking effort"],
+	[S.step4, "4", "Chat or run Agent mode, powered by Kimi"],
+	[S.step5, "5", "Check your quota right from the status bar"],
+];
+
+// Cursor waypoints: [time, element id, [x, y], or "=" to hold]. Element positions are measured at that time.
+const WAYPOINTS = [
+	[0, [600, 330]], [2.6, [600, 330]], [3.1, "pal-row-0"], [3.6, "="],
+	[6.2, "model-chip"], [6.7, "="], [7.2, "ptab-add"], [7.5, "="],
+	[8.1, "add-models"], [8.4, "="], [8.9, "add-kimi"], [9.2, "="], [9.7, [700, 300]],
+	[11.2, [700, 300]], [11.9, "lm-close"], [12.2, "="],
+	[12.9, "model-chip"], [13.2, "="], [13.6, "pm-k28"], [13.9, "pm-k28-more"], [14.2, "="], [14.8, "em-max"], [15.1, "="],
+	[15.8, "prompt"], [17.5, "prompt"], [17.75, "send"], [18.2, "="], [19.1, [600, 420]],
+	[23.5, [600, 420]], [24.4, "usage"], [S.end, "="],
+];
+const CLICKS = [S.pick1, S.chipClick, S.plusClick, S.addClick, S.kimiClick, S.closeClick, S.chipClick2, S.moreClick, S.maxClick, S.send];
+
+function placeAbove(menu, anchor, alignRight = false) {
+	const r = $(anchor).getBoundingClientRect(), m = $(menu);
+	m.style.left = `${clamp(alignRight ? r.right - m.offsetWidth : r.left, 8, 1000 - m.offsetWidth - 8)}px`;
+	m.style.top = `${r.top - m.offsetHeight - 6}px`;
+}
+
+function render(t, withCursor = true) {
+	// Captions.
+	const cap = [...CAPTIONS].reverse().find(c => t >= c[0]);
+	$("cap-num").textContent = cap[1];
+	$("cap-text").textContent = cap[2];
+	$("caption").style.opacity = clamp((t - cap[0]) / .25, 0, 1);
+
+	// Step 1: command palette.
+	const palOn = between(t, S.palOpen, S.pick1);
+	show("palette", palOn);
+	if (palOn) {
+		const q = typed("Kimi Code", ...S.palType, t);
+		$("pal-box").innerHTML = `&gt;${esc(q)}<span class="caret"></span>`;
+		const rows = q.length ? COMMANDS : ["View: Toggle Terminal", "Git: Commit", "Preferences: Open Settings (UI)"];
+		$("pal-rows").innerHTML = rows.map((label, i) => {
+			const mark = q ? label.replace(/^(Kimi)( Code)?/, m => `<span class="m">${m.slice(0, q.length)}</span>${m.slice(q.length)}`) : label;
+			return `<div id="pal-row-${i}" class="row${i === 0 && t >= 2.75 ? " hi" : ""}"><span>${mark}</span></div>`;
+		}).join("");
+	}
+	show("toast", between(t, ...S.toast), "flex");
+	$("toast-text").textContent = "Kimi: Switched to Global API (kimi.ai) (https://api.kimi.ai/coding/v1)";
+
+	// Step 2: Language Models editor → Add Models → Kimi → API key.
+	const keyAdded = t >= S.keyEnter;
+	const k28 = t >= S.moreClick;
+	const effort = t >= S.maxClick ? "Max" : "High";
+	const pickerA = between(t, S.chipClick, S.plusClick), pickerB = between(t, S.chipClick2, S.maxClick);
+	show("picker", pickerA || pickerB);
+	$("ptab-kimi").style.display = keyAdded ? "inline-flex" : "none";
+	$("ptab-copilot").classList.toggle("on", !keyAdded);
+	$("ptab-kimi").classList.toggle("on", keyAdded);
+	$("ptab-add").classList.toggle("hi", between(t, 7.1, S.plusClick));
+	show("plist-copilot", !keyAdded);
+	show("plist-kimi", keyAdded);
+	$("pm-k28").classList.toggle("hi", t >= 13.5);
+	$("ck-k28").className = k28 ? "ck codicon codicon-check" : "ck";
+	$("pm-k28-d").style.visibility = t >= 13.5 ? "visible" : "hidden";
+	$("pm-k28-more").style.color = t >= 13.85 ? "#fff" : "";
+	show("lm", between(t, S.plusClick, S.closeClick));
+	renderModelTable(keyAdded, between(t, S.keyEnter, S.keyEnter + .9));
+	$("add-models").classList.toggle("hot", between(t, 8.0, S.kimiClick));
+	show("add-menu", between(t, S.addClick, S.kimiClick));
+	$("add-kimi").classList.toggle("hi", t >= 8.8);
+	show("apikey", between(t, S.kimiClick, S.keyEnter));
+	const key = typed("•".repeat(32), ...S.keyType, t);
+	$("key-box").innerHTML = key ? `${key}<span class="caret"></span>` : `<span class="ph">API key</span><span class="caret"></span>`;
+
+	// Step 3: effort submenu opens from the model row's chevron.
+	show("effort-menu", between(t, S.moreClick, S.maxClick));
+	$("em-max").classList.toggle("hi", t >= 14.6);
+	$("chip-name").innerHTML = k28 ? `${KIMI_ICON}K2.8 Preview` : `<span class="codicon codicon-copilot"></span>Auto`;
+	$("chip-detail").textContent = k28 ? `${effort} · 1M` : "";
+	show("chip-detail", k28, "inline-flex");
+	$("model-chip").classList.toggle("hot", pickerA || pickerB || between(t, S.chipClick - .25, S.chipClick) || between(t, S.chipClick2 - .25, S.chipClick2));
+
+	// Step 4: chat.
+	const sent = t >= S.send;
+	const p = sent ? "" : typed("Add input validation to createUser", ...S.promptType, t);
+	const focused = between(t, S.promptType[0] - .3, S.send);
+	$("input").classList.toggle("focus", focused);
+	$("prompt").innerHTML = p ? `${esc(p)}${focused ? '<span class="caret"></span>' : ""}` : '<span class="ph">Chat with Copilot</span>';
+	show("welcome", !sent);
+	show("u1", sent);
+	show("b1", t >= S.think[0]);
+	const thinking = t < S.think[1];
+	$("th-icon").className = `codicon codicon-${thinking ? "chevron-down" : "chevron-right"}`;
+	$("th-title").textContent = thinking ? "Thinking…" : "Thought for 2s";
+	$("th-body").textContent = thinking ? typed("The body is untrusted. Validate name and email before inserting so bad input fails fast with a clear error.", S.think[0] + .1, S.think[1] - .2, t) : "";
+	show("th-body", thinking);
+	$("b1-text").innerHTML = typed("I'll add validation to createUser so missing names and malformed emails are rejected before the insert.", ...S.answer, t)
+		.replace("createUser", '<code class="inl">createUser</code>');
+	show("b1-tool", t >= S.edit, "inline-flex");
+	$("b1-tail").textContent = typed("Done. Invalid input now throws a descriptive error.", ...S.tail, t);
+	renderCode(t >= S.edit);
+
+	// Step 5: usage status bar.
+	show("usage", keyAdded, "flex");
+	const used5h = t >= S.tail[1] ? 6 : 5;
+	$("usage-text").textContent = `Kimi · 5h ${used5h}% · 7d 9%`;
+	$("hv-5h").textContent = `${used5h}%`;
+	$("hv-5h-bar").textContent = "■" + "□".repeat(9);
+	show("hover", between(t, S.hover, S.end));
+	$("usage").classList.toggle("hot", between(t, 24.4, S.end));
+
+	// Keyboard badges.
+	const keys = between(t, .45, 1.25) ? ["Ctrl", "Shift", "P"] : between(t, 10.55, 11.15) || between(t, 17.6, 18.1) ? ["Enter"] : null;
+	show("keys", !!keys, "flex");
+	if (keys) $("keys").innerHTML = keys.map(k => `<kbd>${k}</kbd>`).join("");
+
+	// Popups are positioned after their content is set.
+	placeAbove("picker", "model-chip");
+	const pr = $("picker").getBoundingClientRect(), row = $("pm-k28").getBoundingClientRect(), em = $("effort-menu");
+	em.style.left = `${pr.left - em.offsetWidth - 4}px`;
+	em.style.top = `${row.top - 30}px`;
+	const ab = $("add-models").getBoundingClientRect(), am = $("add-menu");
+	am.style.left = `${ab.left}px`;
+	am.style.top = `${ab.bottom + 4}px`;
+	am.style.zIndex = 31;
+
+	show("endcard", t >= S.end, "flex");
+	$("endcard").style.opacity = clamp((t - S.end) / .4, 0, 1);
+
+	if (withCursor) placeCursor(t);
+}
+
+let points;
+function measure() {
+	points = [];
+	for (const [wt, target] of WAYPOINTS) points.push(measurePoint(wt, target, points.at(-1)));
+	render(0, false);
+}
+function measurePoint(wt, target, prev) {
+	if (target === "=") return [wt, prev[1], prev[2]];
+	if (Array.isArray(target)) return [wt, ...target];
+	render(wt, false);
+	const r = $(target).getBoundingClientRect();
+	return [wt, r.left + Math.min(r.width / 2, 40), r.top + r.height / 2];
+}
+
+function placeCursor(t) {
+	if (!points) measure();
+	let x = points[0][1], y = points[0][2];
+	for (let i = 0; i < points.length - 1; i++) {
+		const [t0, x0, y0] = points[i], [t1, x1, y1] = points[i + 1];
+		if (t >= t0 && t <= t1) { const k = ease((t - t0) / (t1 - t0)); x = x0 + (x1 - x0) * k; y = y0 + (y1 - y0) * k; break; }
+		if (t > t1) { x = x1; y = y1; }
+	}
+	const c = $("cursor");
+	c.style.left = `${x - 2}px`;
+	c.style.top = `${y - 2}px`;
+	show(c, t < S.end);
+	const click = CLICKS.find(ct => between(t, ct - .05, ct + .3));
+	const rp = $("ripple");
+	show(rp, click !== undefined);
+	if (click !== undefined) {
+		const k = clamp((t - click + .05) / .35, 0, 1);
+		rp.style.left = `${x}px`; rp.style.top = `${y}px`;
+		rp.style.transform = `scale(${.4 + k * .9})`;
+		rp.style.opacity = 1 - k;
+	}
+}
+
+window.DEMO = { render, duration: S.total };
+document.fonts.ready.then(() => { measure(); render(0); window.DEMO.ready = true; });
+
+// Live preview when opened directly in a browser.
+if (!navigator.webdriver) {
+	const start = performance.now();
+	const tick = () => { render(((performance.now() - start) / 1000) % S.total); requestAnimationFrame(tick); };
+	document.fonts.ready.then(() => requestAnimationFrame(tick));
+}
+</script>
+</body>
+</html>

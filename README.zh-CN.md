@@ -6,6 +6,8 @@
 
 扩展 ID：`dreamyfishmt.dreamyfishmt-kimi-code`。本项目并非 Kimi 或 GitHub 官方扩展。
 
+![在 VS Code 中配置 Kimi Code：选择端点、添加 API Key、选择模型和思考强度、在 Agent 模式中对话，并在状态栏查看额度](images/demo.gif)
+
 ## 为什么选择这个插件？
 
 - **在 VS Code 内使用已有的 Kimi Code 订阅。** 填写自己的订阅 API Key，即可在现有 Chat 和 Agent 界面中使用 Kimi。选择 Kimi Code 端点时，模型请求直接发送给 Kimi Code，无需经过扩展运营的中转服务。
