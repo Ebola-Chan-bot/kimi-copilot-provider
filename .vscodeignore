@@ -3,6 +3,7 @@
 .pnpm-store/
 src/
 tests/
+scripts/
 node_modules/
 tsconfig.json
 *.map
