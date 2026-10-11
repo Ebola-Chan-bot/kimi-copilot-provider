@@ -113,6 +113,22 @@ With the default output budget of 32,768, the input budget is 229,376 for 256K m
 
 The output setting's allowed range is an extension policy, not a guarantee that every model accepts 65,536 output tokens. Token counting is approximate, so requests near the context limit can still exceed server limits.
 
+VS Code (Copilot Chat) decides how much history to keep by calling the extension's token counter, then adds small per-message and per-tool overheads. The counter covers text, thinking, tool calls and tool results; it counts about four Latin characters per token and one token per CJK character, deliberately high for Chinese so long chats are truncated early rather than rejected. After each response the **Kimi** output channel logs the request's estimate next to the server's count, for example:
+
+```text
+Token usage: input=48211, output=903, total=49114
+Context estimate: 45870 (messages=40102 in 37, tools=5768 in 61); server input/estimate=1.05; input limit=229376
+```
+
+A ratio above 1 means the server counted more than VS Code budgeted; at the input limit it would see about `limit × ratio` tokens. To measure ratios per content type, or send one request sized to the limit, without filling a real chat:
+
+```bash
+KIMI_API_KEY=... pnpm calibrate:tokens --model k3-256k              # ratio table, ~60K input tokens
+KIMI_API_KEY=... pnpm calibrate:tokens --model k3-256k --probe 229376 --max-tokens 32768
+```
+
+The script reuses the compiled estimator and message conversion, sends with `max_completion_tokens` 1 by default and reports `prompt_tokens`; the probe shows whether the server accepts an Agent-like request that VS Code would consider full. Both are billed as normal requests.
+
 Actual request usage is separate from those estimates: streaming requests set `stream_options.include_usage`, and the final valid server usage snapshot supplies input (`prompt_tokens`), output (`completion_tokens`), and total counts. Cache and reasoning counts are retained when present; reasoning is not added again to the output total. Repeated usage snapshots are not summed. Missing or invalid usage is reported as unavailable in the **Kimi** output channel, without substituting estimated counts.
 
 Usage is forwarded as a `LanguageModelDataPart` with Copilot's internal `usage` MIME type, as consumed by its [extension endpoint implementation](https://github.com/microsoft/vscode/blob/main/extensions/copilot/src/platform/endpoint/vscode-node/extChatEndpoint.ts). This is not a stable public usage API, so native token display depends on the installed VS Code/Copilot version. The **Kimi** output channel also records the returned input/output/total counts. These per-request counts are independent of the account quota status bar.

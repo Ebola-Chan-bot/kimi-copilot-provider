@@ -113,6 +113,22 @@ maxInputTokens = contextWindow - configured maxOutputTokens
 
 输出设置范围是扩展的策略，不保证每个模型接受 65,536 输出 Token。Token 计数是近似值，因此接近上下文上限时仍可能被服务端拒绝。
 
+VS Code（Copilot Chat）调用扩展的 Token 计数决定保留多少历史，并为每条消息和每个工具加少量开销。计数覆盖文本、思考、工具调用和工具结果；拉丁字符约 4 个计 1 Token，CJK 字符每个计 1 Token——中文刻意偏高估，让长对话提前截断而不是被服务端拒绝。每次响应后，**Kimi** 输出通道会把本次请求的估算值与服务端计数并列记录，例如：
+
+```text
+Token usage: input=48211, output=903, total=49114
+Context estimate: 45870 (messages=40102 in 37, tools=5768 in 61); server input/estimate=1.05; input limit=229376
+```
+
+比率大于 1 表示服务端计数多于 VS Code 的预算；到达输入上限时服务端约看到 `limit × ratio` 个 Token。无需堆满真实对话，也可以按内容类型测比率，或直接发送一个按上限构造的请求：
+
+```bash
+KIMI_API_KEY=... pnpm calibrate:tokens --model k3-256k              # 比率表，约 6 万输入 Token
+KIMI_API_KEY=... pnpm calibrate:tokens --model k3-256k --probe 229376 --max-tokens 32768
+```
+
+脚本复用编译后的估算和消息转换代码，默认以 `max_completion_tokens` 1 发送并读取 `prompt_tokens`；探测模式验证服务端是否接受 VS Code 认为已满的 Agent 式请求。两者都按正常请求计费。
+
 每次请求的实际用量与估算分开处理：流式请求设置 `stream_options.include_usage`，使用服务端最后一个有效快照的输入（`prompt_tokens`）、输出（`completion_tokens`）和总数。返回缓存、思考计数时也会保留；思考 Token 不会重复加到输出总数中，也不会把重复快照累加。缺失或无效用量会在 **Kimi** 输出通道标为不可用，不会用估算替代。
 
 用量通过带有 Copilot 内部 `usage` MIME 类型的 `LanguageModelDataPart` 传递，与其[扩展端点实现](https://github.com/microsoft/vscode/blob/main/extensions/copilot/src/platform/endpoint/vscode-node/extChatEndpoint.ts)对应。这不是稳定公开 API，原生 Token 显示取决于安装的 VS Code / Copilot 版本。输出通道也记录输入、输出和总数。这些请求用量独立于状态栏中的账号额度。

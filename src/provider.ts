@@ -18,7 +18,7 @@ import {
 	type KimiResponseOptions,
 } from "./requestOptions.js";
 import { createThinkingPart } from "./thinking.js";
-import { estimateTokenCount } from "./tokenCount.js";
+import { estimateRequestTokens, estimateTokenCount } from "./tokenCount.js";
 import { ToolCallAccumulator } from "./toolCalls.js";
 
 function mapKimiApiError(error: KimiApiError): Error {
@@ -204,6 +204,7 @@ export class KimiChatProvider implements vscode.LanguageModelChatProvider {
 		}
 		const kimiMessages = convertMessages(messages, thinking);
 		const kimiTools = convertTools(options.tools);
+		const estimate = estimateRequestTokens(messages, options.tools);
 
 		const requestedMaxTokens = options.modelOptions?.maxTokens;
 		if (
@@ -279,6 +280,9 @@ export class KimiChatProvider implements vscode.LanguageModelChatProvider {
 						new TextEncoder().encode(JSON.stringify(usage)), "usage",
 					));
 					this.log(`Token usage: input=${usage.prompt_tokens}, output=${usage.completion_tokens}, total=${usage.total_tokens}`);
+					// Calibration: VS Code budgets the context with these estimates, the server with prompt_tokens.
+					this.log(`Context estimate: ${estimate.total} (messages=${estimate.messages} in ${messages.length}, tools=${estimate.tools} in ${options.tools?.length ?? 0}); ` +
+						`server input/estimate=${(usage.prompt_tokens / Math.max(1, estimate.total)).toFixed(2)}; input limit=${budget.maxInputTokens}`);
 				} else {
 					this.log("Token usage unavailable: the response did not include valid usage counts.");
 				}

@@ -179,7 +179,8 @@
 		"vscode:prepublish": "tsc -p ./",
 		"compile": "tsc -p ./",
 		"watch": "tsc -watch -p ./",
-		"build:local": "pnpm dlx @vscode/vsce@4.0.0 package --no-dependencies"
+		"build:local": "pnpm dlx @vscode/vsce@4.0.0 package --no-dependencies",
+		"calibrate:tokens": "tsc -p ./ && node scripts/token-calibration.cjs"
 	},
 	"devDependencies": {
 		"@eslint/js": "10.0.1",
