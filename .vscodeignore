@@ -10,3 +10,5 @@ tsconfig.json
 .env.*
 .gitignore
 package-lock.json
+docs/
+images/demo.gif

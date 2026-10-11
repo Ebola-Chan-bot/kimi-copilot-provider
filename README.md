@@ -6,6 +6,8 @@ Use your Kimi Code subscription in VS Code Chat and Agent mode through a custom 
 
 Extension ID: `dreamyfishmt.dreamyfishmt-kimi-code`. This is not an official Kimi or GitHub extension.
 
+![Setting up Kimi Code in VS Code: choose an endpoint, add your API key, pick a model and thinking effort, chat in Agent mode, and check quota in the status bar](images/demo.gif)
+
 ## Why use this extension?
 
 - **Use your Kimi Code subscription inside VS Code.** Connect with your own subscription API key and work in the existing Chat and Agent interface. With a Kimi Code endpoint selected, model requests go directly to Kimi Code without an extension-operated relay.
