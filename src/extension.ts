@@ -3,6 +3,7 @@ import { runConfigurationDiagnostics } from "./diagnostics";
 import {
 	API_BASE_URL_KEY,
 	CONFIG_SECTION,
+	isMoonshotPlatform,
 	PRESET_URLS,
 	setApiBaseUrl,
 	setPresetEndpoint,
@@ -10,23 +11,11 @@ import {
 import { KimiChatProvider } from "./provider";
 import { UsageStatusBar } from "./usage";
 
-/** Endpoints selectable for completeness, without model catalog, quota or credential support. */
-const UNSUPPORTED_ENDPOINTS: ReadonlySet<keyof typeof PRESET_URLS> = new Set(["moonshot", "moonshotCN"]);
-
 async function setBaseUrlAndNotify(
 	provider: KimiChatProvider,
 	endpoint: keyof typeof PRESET_URLS,
 	label: string,
 ): Promise<void> {
-	if (UNSUPPORTED_ENDPOINTS.has(endpoint)) {
-		const switchAnyway = vscode.l10n.t("Switch Anyway");
-		const choice = await vscode.window.showWarningMessage(
-			vscode.l10n.t("{0} is not yet supported. Model discovery, usage and Kimi Code subscription keys may not work with it.", label),
-			{ modal: true },
-			switchAnyway,
-		);
-		if (choice !== switchAnyway) return;
-	}
 	await setPresetEndpoint(endpoint);
 	provider.notifyModelsChanged();
 	vscode.window.showInformationMessage(vscode.l10n.t("Kimi: Switched to {0} ({1})", label, PRESET_URLS[endpoint]));
@@ -67,8 +56,12 @@ export function activate(context: vscode.ExtensionContext): void {
 	let diagnosticRun: Promise<void> | undefined;
 	const diagnose = () => diagnosticRun ??= runConfigurationDiagnostics(provider, output).finally(() => { diagnosticRun = undefined; });
 	const usage = new UsageStatusBar(log);
-	const updateUsage = () => usage.configure(provider.account,
-		vscode.workspace.getConfiguration(CONFIG_SECTION).get<boolean>("showUsageStatusBar", true));
+	// The Open Platform is pay-as-you-go and has no subscription quota API.
+	const updateUsage = () => {
+		const account = provider.account;
+		usage.configure(account, !!account && !isMoonshotPlatform(account.baseUrl) &&
+			vscode.workspace.getConfiguration(CONFIG_SECTION).get<boolean>("showUsageStatusBar", true));
+	};
 
 	context.subscriptions.push(
 		output, provider, usage,

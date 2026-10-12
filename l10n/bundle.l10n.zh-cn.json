@@ -55,8 +55,6 @@
 	"Sends two small test requests using the loaded key and global settings; uses account quota.": "将使用已加载的 Key 和全局设置发送两个小测试请求，会消耗账号额度。",
 	"Copy Sanitized Report": "复制脱敏报告",
 	"Kimi diagnostics could not start. Check the endpoint settings and reopen Chat → Manage Language Models.": "Kimi 诊断无法启动。请检查端点设置，然后重新打开 Chat → Manage Language Models。",
-	"Switch Anyway": "仍然切换",
-	"{0} is not yet supported. Model discovery, usage and Kimi Code subscription keys may not work with it.": "暂不支持 {0}。模型发现、用量查询和 Kimi Code 订阅 Key 可能无法使用。",
 	"Kimi: Switched to {0} ({1})": "Kimi：已切换到 {0} ({1})",
 	"Enter custom Kimi API base URL": "输入自定义 Kimi API 基础 URL",
 	"URL cannot be empty": "URL 不能为空",
@@ -108,5 +106,6 @@
 	"Refreshing.": "正在刷新。",
 	"Refresh": "刷新",
 	"Open Console": "打开控制台",
-	"Click for Refresh Usage or Open Kimi Console.": "点击可刷新用量或打开 Kimi 控制台。"
+	"Click for Refresh Usage or Open Kimi Console.": "点击可刷新用量或打开 Kimi 控制台。",
+	"Authentication failed (401). Use an Open Platform API key: platform.kimi.ai for moonshot.ai, platform.kimi.com for moonshot.cn. Kimi Code keys do not work here.{0}": "认证失败 (401)。请使用开放平台 API Key：moonshot.ai 对应 platform.kimi.ai，moonshot.cn 对应 platform.kimi.com。Kimi Code Key 无法用于此端点。{0}"
 }

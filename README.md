@@ -36,8 +36,7 @@ This extension provides chat models; it does not replace Copilot's inline code c
 
 - VS Code 1.120.0 or later, as declared in the manifest.
 - Chat/Agent functionality available in VS Code.
-- An active Kimi Code subscription with access to the selected model.
-- An API key from the [Kimi Code console](https://www.kimi.com/code/console).
+- An active Kimi Code subscription with access to the selected model, and an API key from the [Kimi Code console](https://www.kimi.com/code/console); or, for the Moonshot endpoints, an Open Platform API key from [platform.kimi.ai](https://platform.kimi.ai/console/api-keys) (`moonshot`) or [platform.kimi.com](https://platform.kimi.com/) (`moonshotCN`).
 - Node.js and pnpm for building from source.
 
 Kimi Code subscription keys and Kimi Open Platform keys are not interchangeable. See the [Kimi Code model documentation](https://www.kimi.com/code/docs/en/kimi-code/models.html) for current model and subscription availability.
@@ -168,11 +167,16 @@ Example user settings:
 | --- | --- | --- |
 | `kimiCode` | `https://api.kimi.ai/coding/v1` | Kimi Code overseas |
 | `kimiCodeCN` | `https://api.kimi.com/coding/v1` | Kimi Code China |
-| `moonshot` | `https://api.moonshot.ai/v1` | Open Platform integration not implemented |
-| `moonshotCN` | `https://api.moonshot.cn/v1` | Open Platform integration not implemented |
+| `moonshot` | `https://api.moonshot.ai/v1` | Kimi Open Platform (pay-as-you-go), key from platform.kimi.ai |
+| `moonshotCN` | `https://api.moonshot.cn/v1` | Kimi Open Platform China, key from platform.kimi.com |
 | `custom` | Value of `kimi.apiBaseUrl` | Must support this extension's request format and model IDs |
 
-The Moonshot selections change the URL only; they do not adapt the model catalog or credentials. Use a Kimi Code endpoint for subscription access.
+Kimi Code subscription keys and Open Platform keys are not interchangeable, and keys from platform.kimi.ai and platform.kimi.com only work on their own endpoint. On the Moonshot endpoints:
+
+- Models come from `/v1/models`. That list only reports context length, image input and reasoning support, so the extension applies the documented [parameter rules](https://platform.kimi.ai/docs/api/models-overview) for known models: `kimi-k3` gets no `thinking` field and uses the picker's `reasoning_effort` (`low` / `high` / `max`, default `max`); `kimi-k2.7-code` and its HighSpeed variant always think; `kimi-k2.6` honors a disabled thinking mode.
+- All models are offered with tool calling. `tool_choice: "required"` is sent only to `kimi-k3`; other models receive `auto` instead, because they reject `required`.
+- Unknown future models use the server's default thinking mode and no reasoning-effort menu.
+- The usage status bar is hidden: the Open Platform has no subscription quota API.
 
 To use a custom endpoint:
 
@@ -196,8 +200,10 @@ Open the Command Palette and search for:
 - **Kimi Code: Set API Endpoint to Global (kimi.ai)**
 - **Kimi Code: Set API Endpoint to China (kimi.com)**
 - **Kimi: Set Custom API Endpoint**
+- **Moonshot Platform: Set API Endpoint to Moonshot (moonshot.ai)**
+- **Moonshot Platform: Set API Endpoint to Moonshot China (moonshot.cn)**
 
-The two Moonshot endpoint commands are hidden from the Command Palette because they do not provide complete Open Platform support. When invoked from a keybinding, they ask for confirmation before switching. **Kimi: Test Connection** is deprecated and also hidden; it remains available to existing keybindings as an alias for **Kimi: Diagnose Current Configuration**.
+**Kimi: Test Connection** is deprecated and hidden from the Command Palette; it remains available to existing keybindings as an alias for **Kimi: Diagnose Current Configuration**.
 
 Commands, settings, notifications, the usage status bar and diagnostic reports follow the VS Code display language (English or Simplified Chinese).
 
@@ -223,7 +229,7 @@ After VS Code supplies a configured provider key, the status bar shows a usage i
 
 Usage is read from `<baseUrl>/usages` immediately and every 60 seconds, with a separate 10-second timeout and no overlapping queries. It never blocks or cancels chat. A spinning icon indicates refreshes. Failed refreshes keep previous values with a warning icon and **Stale** label in the hover; without a successful result, the item says usage is unavailable. Missing windows display `—`, never a fabricated zero. The progress indicator is bounded to ten segments; reported percentages above 100% remain visible, and a passed reset timestamp is labeled as awaiting an update. Failures go to the **Kimi** output channel without automatic error popups.
 
-Changing credentials/endpoints clears quota data and cancels old quota requests. Hiding the item stops polling. On reload it waits for VS Code to supply credentials; it does not read `.env` or persist a second copy of the API key. A provider callback explicitly clearing its key hides the item; an unconfigured vendor scan is ignored. With multiple Kimi provider configurations, the status bar follows the most recently prepared configuration. Custom and Moonshot endpoints may not implement this subscription quota API; that does not affect chat.
+Changing credentials/endpoints clears quota data and cancels old quota requests. Hiding the item stops polling. On reload it waits for VS Code to supply credentials; it does not read `.env` or persist a second copy of the API key. A provider callback explicitly clearing its key hides the item; an unconfigured vendor scan is ignored. With multiple Kimi provider configurations, the status bar follows the most recently prepared configuration. The item is not shown for Moonshot endpoints. Custom endpoints may not implement this subscription quota API; that does not affect chat.
 
 Run `pnpm test` for parser, cache, account isolation, refresh/timeout, retry, localization and chat regression tests, and `pnpm lint` for ESLint. Development `.env` files are excluded from Git and VSIX packages.
 

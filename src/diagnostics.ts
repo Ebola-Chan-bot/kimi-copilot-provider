@@ -88,7 +88,7 @@ export async function diagnoseResponses(
 		}];
 	}
 	const options = {
-		thinking, reasoningEffort,
+		thinking, thinkingParameter: model.thinkingParameter, reasoningEffort,
 		maxTokens: Math.min(1024, getModelTokenBudget(model).maxOutputTokens),
 		requireSseDoneMarker: model.requireSseDoneMarker,
 		// Report the endpoint's real behavior instead of masking 429/5xx with retries.

@@ -36,8 +36,7 @@
 
 - VS Code 1.120.0 或更新版本，与扩展清单一致。
 - VS Code 中可使用 Chat / Agent 功能。
-- 有效的 Kimi Code 订阅，且拥有所选模型的访问权限。
-- 从 [Kimi Code 控制台](https://www.kimi.com/code/console)获取的 API Key。
+- 有效的 Kimi Code 订阅（拥有所选模型的访问权限），以及从 [Kimi Code 控制台](https://www.kimi.com/code/console)获取的 API Key；或在使用 Moonshot 端点时，从 [platform.kimi.ai](https://platform.kimi.ai/console/api-keys)（`moonshot`）或 [platform.kimi.com](https://platform.kimi.com/)（`moonshotCN`）获取的开放平台 API Key。
 - 从源码构建时需要 Node.js 和 pnpm。
 
 Kimi Code 订阅 Key 与 Kimi 开放平台 Key 不能互换。模型与套餐信息请参考 [Kimi Code 模型文档](https://www.kimi.com/code/docs/en/kimi-code/models.html)。
@@ -168,11 +167,16 @@ KIMI_API_KEY=... pnpm calibrate:tokens --model k3-256k --probe 229376 --max-toke
 | --- | --- | --- |
 | `kimiCode` | `https://api.kimi.ai/coding/v1` | Kimi Code 海外 |
 | `kimiCodeCN` | `https://api.kimi.com/coding/v1` | Kimi Code 中国 |
-| `moonshot` | `https://api.moonshot.ai/v1` | 尚未实现完整开放平台集成 |
-| `moonshotCN` | `https://api.moonshot.cn/v1` | 尚未实现完整开放平台集成 |
+| `moonshot` | `https://api.moonshot.ai/v1` | Kimi 开放平台（按量计费），Key 来自 platform.kimi.ai |
+| `moonshotCN` | `https://api.moonshot.cn/v1` | Kimi 开放平台国内版，Key 来自 platform.kimi.com |
 | `custom` | `kimi.apiBaseUrl` 的值 | 需兼容本扩展的请求格式及模型 ID |
 
-Moonshot 选项只修改 URL，不会适配模型目录或凭据。订阅访问请使用 Kimi Code 端点。
+Kimi Code 订阅 Key 与开放平台 Key 不能互换；platform.kimi.ai 与 platform.kimi.com 的 Key 也只能用于各自的端点。使用 Moonshot 端点时：
+
+- 模型列表来自 `/v1/models`。该接口只返回上下文长度、图片输入和思考能力，因此扩展会按文档中的[参数规则](https://platform.kimi.com/docs/api/models-overview)处理已知模型：`kimi-k3` 不发送 `thinking` 字段，使用模型选择器中的 `reasoning_effort`（`low` / `high` / `max`，默认 `max`）；`kimi-k2.7-code` 及其 HighSpeed 版本始终开启思考；`kimi-k2.6` 支持关闭思考。
+- 所有模型均开启工具调用。只有 `kimi-k3` 会发送 `tool_choice: "required"`，其他模型不支持 `required`，改为发送 `auto`。
+- 未知的新模型使用服务端默认思考模式，不显示思考强度菜单。
+- 不显示用量状态栏：开放平台没有订阅额度 API。
 
 自定义端点示例：
 
@@ -196,8 +200,10 @@ Moonshot 选项只修改 URL，不会适配模型目录或凭据。订阅访问�
 - **Kimi Code: Set API Endpoint to Global (kimi.ai)**：切换海外端点。
 - **Kimi Code: Set API Endpoint to China (kimi.com)**：切换中国端点。
 - **Kimi: Set Custom API Endpoint**：设置自定义端点。
+- **Moonshot Platform: Set API Endpoint to Moonshot (moonshot.ai)**：切换到 Kimi 开放平台。
+- **Moonshot Platform: Set API Endpoint to Moonshot China (moonshot.cn)**：切换到 Kimi 开放平台国内版。
 
-两个 Moonshot 端点切换命令不提供完整开放平台支持，已从命令面板隐藏；通过快捷键调用时会先确认再切换。**Kimi: Test Connection** 已弃用并同样隐藏，仅作为 **Kimi: Diagnose Current Configuration** 的别名保留给已有快捷键。
+**Kimi: Test Connection** 已弃用并从命令面板隐藏，仅作为 **Kimi: Diagnose Current Configuration** 的别名保留给已有快捷键。
 
 命令、设置、通知、额度状态栏和诊断报告会跟随 VS Code 显示语言（英文或简体中文）。
 
@@ -225,7 +231,7 @@ VS Code 提供配置好的 Key 后，状态栏显示额度图标和类似 `Kimi 
 
 额度从 `<baseUrl>/usages` 获取，立即刷新并每 60 秒轮询一次，独立超时 10 秒，不重叠请求，不阻塞或取消聊天。刷新时显示旋转图标。失败后保留旧值，显示警告图标和 **Stale** 标记；没有成功结果时显示额度不可用。缺失窗口显示 `—`，不会伪造为零。进度指示最多十段，超过 100% 的实际百分比仍会展示；已过期的重置时间标为等待更新。失败记录到输出通道，不自动弹出错误窗口。
 
-修改凭据/端点会清空额度并取消旧查询，隐藏状态栏停止轮询。窗口重载后等待 VS Code 提供凭据，不读取 `.env` 或持久化另一份 Key。明确清除 Key 的提供商回调会隐藏状态栏，不带配置的基础扫描会被忽略。多个 Kimi 配置并存时，状态栏跟随最近一次被准备的配置。自定义和 Moonshot 端点可能没有该订阅额度 API，这不影响聊天。
+修改凭据/端点会清空额度并取消旧查询，隐藏状态栏停止轮询。窗口重载后等待 VS Code 提供凭据，不读取 `.env` 或持久化另一份 Key。明确清除 Key 的提供商回调会隐藏状态栏，不带配置的基础扫描会被忽略。多个 Kimi 配置并存时，状态栏跟随最近一次被准备的配置。Moonshot 端点不显示该状态栏。自定义端点可能没有该订阅额度 API，这不影响聊天。
 
 运行 `pnpm test` 检查解析、缓存、账号隔离、刷新/超时、重试、本地化、诊断及聊天回归，运行 `pnpm lint` 执行 ESLint 检查。开发 `.env` 文件不进入 Git 和 VSIX 包。
 

@@ -1,5 +1,5 @@
 import type * as vscode from "vscode";
-import { getTokenBudgetSettings, type ReasoningEffort } from "./config";
+import { getTokenBudgetSettings, isMoonshotPlatform, type ReasoningEffort } from "./config";
 export interface KimiModelInfo {
 	id: string;
 	name: string;
@@ -17,6 +17,10 @@ export interface KimiModelInfo {
 	 * Kimi Coding API may omit it; set false for those models.
 	 */
 	requireSseDoneMarker: boolean;
+	/** Send the K2.x `thinking` object; Kimi K3 is controlled only by `reasoning_effort`. Defaults to true. */
+	thinkingParameter?: boolean;
+	/** Accepts `tool_choice: "required"`; Open Platform K2.x models reject it. Defaults to true. */
+	requiredToolChoice?: boolean;
 	capabilities: {
 		imageInput: boolean;
 		toolCalling: boolean;
@@ -70,6 +74,28 @@ export const KIMI_MODELS: KimiModelInfo[] = [
 		contextWindow: 262144,
 	},
 ];
+type MoonshotModelPreset = Pick<KimiModelInfo, "name" | "thinkingType" | "reasoningEfforts" | "defaultEffort" | "thinkingParameter" | "requiredToolChoice">;
+
+const K27_CODE: Omit<MoonshotModelPreset, "name"> = {
+	thinkingType: "only", reasoningEfforts: [], thinkingParameter: true, requiredToolChoice: false,
+};
+
+/**
+ * Open Platform `/models` only reports context, image/video input and reasoning support.
+ * Request constraints come from https://platform.kimi.ai/docs/api/models-overview.
+ */
+const MOONSHOT_MODELS: Readonly<Record<string, MoonshotModelPreset>> = {
+	"kimi-k3": {
+		name: "Kimi K3", thinkingType: "only", reasoningEfforts: ["low", "high", "max"], defaultEffort: "max",
+		thinkingParameter: false, requiredToolChoice: true,
+	},
+	"kimi-k2.7-code": { ...K27_CODE, name: "Kimi K2.7 Code" },
+	"kimi-k2.7-code-highspeed": { ...K27_CODE, name: "Kimi K2.7 Code HighSpeed" },
+	"kimi-k2.6": {
+		name: "Kimi K2.6", thinkingType: "both", reasoningEfforts: [], thinkingParameter: true, requiredToolChoice: false,
+	},
+};
+
 export function getModelTokenBudget(model: KimiModelInfo) {
 	const settings = getTokenBudgetSettings();
 
@@ -140,33 +166,46 @@ export function parseModels(payload: unknown, baseUrl: string): KimiModelInfo[] 
 	const data = record(payload)?.data;
 	if (!Array.isArray(data)) throw new Error("Invalid model list response.");
 	const models = new Map<string, KimiModelInfo>();
+	const moonshot = isMoonshotPlatform(baseUrl);
 	for (const item of data) {
 		const raw = record(item);
 		if (!raw || typeof raw.id !== "string" || !raw.id.trim()) throw new Error("Invalid model ID.");
 		if (raw.protocol !== undefined && !["kimi", "openai", "chat_completions"].includes(String(raw.protocol))) continue;
 		const id = raw.id.trim();
 		const known = KIMI_MODELS.find(model => model.id === id);
+		const preset = moonshot ? MOONSHOT_MODELS[id] : undefined;
 		const context = raw.context_length === undefined ? known?.contextWindow ?? 32768 : Number(raw.context_length);
 		if (!Number.isSafeInteger(context) || context! < 2) throw new Error("Invalid model context length.");
-		const thinkingType = ["only", "no", "both"].includes(String(raw.supports_thinking_type))
+		let thinkingType = ["only", "no", "both"].includes(String(raw.supports_thinking_type))
 			? raw.supports_thinking_type as KimiModelInfo["thinkingType"] : undefined;
+		// Unknown Open Platform models keep the server's default thinking mode.
+		if (!thinkingType && moonshot) {
+			thinkingType = raw.supports_reasoning === false ? "no"
+				: preset?.thinkingType ?? (raw.supports_reasoning === true ? "only" : undefined);
+		}
 		const thinking = thinkingType ? thinkingType !== "no"
 			: typeof raw.supports_reasoning === "boolean" ? raw.supports_reasoning : known?.thinking ?? false;
 		const effortInfo = record(raw.think_efforts);
 		const rawEfforts = effortInfo ? (effortInfo.support === true ? effortInfo.valid_efforts : [])
-			: raw.support_efforts ?? (known?.supportsReasoningEffort ? known.reasoningEfforts : []);
+			: raw.support_efforts ?? preset?.reasoningEfforts ?? (known?.supportsReasoningEffort ? known.reasoningEfforts : []);
 		const efforts = thinking && Array.isArray(rawEfforts)
 			? [...new Set(rawEfforts.filter((value): value is ReasoningEffort => typeof value === "string" && EFFORTS.includes(value)))] : [];
-		const rawDefault = effortInfo ? effortInfo.default_effort : raw.default_effort ?? known?.defaultEffort;
+		const rawDefault = effortInfo ? effortInfo.default_effort : raw.default_effort ?? preset?.defaultEffort ?? known?.defaultEffort;
 		const defaultEffort = efforts.includes(rawDefault as ReasoningEffort) ? rawDefault as ReasoningEffort : undefined;
 		models.set(id, {
-			id, name: typeof raw.display_name === "string" && raw.display_name.trim() ? raw.display_name.trim() : known?.name ?? id,
+			id, name: typeof raw.display_name === "string" && raw.display_name.trim() ? raw.display_name.trim() : preset?.name ?? known?.name ?? id,
 			family: "kimi", version: id, contextWindow: context!, tooltip: "Kimi · discovered from API",
 			thinking, thinkingType, supportsReasoningEffort: efforts.length > 0, reasoningEfforts: efforts, defaultEffort,
 			requireSseDoneMarker: !new URL(baseUrl).pathname.includes("/coding/"),
+			...(moonshot ? {
+				thinkingParameter: preset?.thinkingParameter ?? false,
+				requiredToolChoice: preset?.requiredToolChoice ?? false,
+			} : {}),
 			capabilities: {
 				imageInput: typeof raw.supports_image_in === "boolean" ? raw.supports_image_in : known?.capabilities.imageInput ?? false,
-				toolCalling: typeof raw.supports_tool_use === "boolean" ? raw.supports_tool_use : known?.capabilities.toolCalling ?? false,
+				// Every Open Platform chat model supports function calling; its /models has no flag for it.
+				toolCalling: typeof raw.supports_tool_use === "boolean" ? raw.supports_tool_use
+					: moonshot || (known?.capabilities.toolCalling ?? false),
 			},
 		});
 	}

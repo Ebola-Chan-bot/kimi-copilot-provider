@@ -4,7 +4,7 @@ import {
 	KimiApiError,
 	summarizeErrorResponse,
 } from "./api.js";
-import { getApiBaseUrl, getReasoningEffort } from "./config.js";
+import { getApiBaseUrl, getReasoningEffort, isMoonshotPlatform } from "./config.js";
 import { toLanguageModelChatInformation, getModelTokenBudget, type KimiModelInfo } from "./models.js";
 import { accountId, ModelCatalog } from "./catalog.js";
 import type { Account } from "./usage.js";
@@ -21,7 +21,7 @@ import { createThinkingPart } from "./thinking.js";
 import { estimateRequestTokens, estimateTokenCount } from "./tokenCount.js";
 import { ToolCallAccumulator } from "./toolCalls.js";
 
-function mapKimiApiError(error: KimiApiError): Error {
+function mapKimiApiError(error: KimiApiError, baseUrl: string): Error {
 	const detail = error.response
 		? ` Response: ${summarizeErrorResponse(error.response)}`
 		: "";
@@ -30,9 +30,11 @@ function mapKimiApiError(error: KimiApiError): Error {
 		case 0:
 			return new Error(`${error.message}${detail}`);
 		case 401:
-			return new Error(vscode.l10n.t(
-				"Authentication failed (401). Check your API key from kimi.com/code/console.{0}", detail,
-			));
+			return new Error(isMoonshotPlatform(baseUrl)
+				? vscode.l10n.t(
+					"Authentication failed (401). Use an Open Platform API key: platform.kimi.ai for moonshot.ai, platform.kimi.com for moonshot.cn. Kimi Code keys do not work here.{0}", detail,
+				)
+				: vscode.l10n.t("Authentication failed (401). Check your API key from kimi.com/code/console.{0}", detail));
 		case 403:
 			return new Error(vscode.l10n.t("Forbidden (403). The API rejected the request.{0}", detail));
 		case 429:
@@ -230,9 +232,11 @@ export class KimiChatProvider implements vscode.LanguageModelChatProvider {
 					maxTokens,
 					tools: kimiTools,
 					thinking,
+					thinkingParameter: modelDef.thinkingParameter,
 					reasoningEffort,
 					promptCacheKey: getPromptCacheKey(options),
 					toolMode: options.toolMode,
+					requiredToolChoice: modelDef.requiredToolChoice,
 					requireSseDoneMarker: modelDef.requireSseDoneMarker,
 					onRetry: (status, delayMs, attempt) => this.log(
 						`Chat request returned HTTP ${status}; retry ${attempt} in ${delayMs} ms.`,
@@ -247,7 +251,7 @@ export class KimiChatProvider implements vscode.LanguageModelChatProvider {
 			for await (const chunk of stream) {
 				if (token.isCancellationRequested) break;
 				// Usage is a cumulative snapshot, often in a final chunk with no choices.
-				usage = parseTokenUsage(chunk.usage) ?? usage;
+				usage = parseTokenUsage(chunk.usage) ?? parseTokenUsage(chunk.choices?.[0]?.usage) ?? usage;
 
 				for (const choice of chunk.choices ?? []) {
 					const delta = choice.delta;
@@ -289,7 +293,7 @@ export class KimiChatProvider implements vscode.LanguageModelChatProvider {
 			}
 		} catch (error) {
 			if (!(error instanceof KimiApiError)) throw error;
-			throw mapKimiApiError(error);
+			throw mapKimiApiError(error, catalog.baseUrl);
 		}
 	}
 
