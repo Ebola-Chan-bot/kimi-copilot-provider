@@ -160,14 +160,6 @@
 				{
 					"command": "kimi.testConnection",
 					"when": "false"
-				},
-				{
-					"command": "kimi.setBaseUrl.moonshot",
-					"when": "false"
-				},
-				{
-					"command": "kimi.setBaseUrl.moonshotCN",
-					"when": "false"
 				}
 			]
 		}

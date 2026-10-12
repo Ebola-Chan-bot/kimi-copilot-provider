@@ -113,9 +113,13 @@ interface ChatOptions {
 	tools?: KimiTool[];
 	stop?: string[];
 	thinking?: boolean;
+	/** Send the K2.x `thinking` object. False for models controlled only by `reasoning_effort` (Kimi K3). */
+	thinkingParameter?: boolean;
 	reasoningEffort?: ReasoningEffort;
 	promptCacheKey?: string;
 	toolMode?: vscode.LanguageModelChatToolMode;
+	/** False when the model rejects `tool_choice: "required"`; Required mode then falls back to `auto`. */
+	requiredToolChoice?: boolean;
 	/**
 	 * When true (default), the stream must end with `data: [DONE]` or an error is thrown (Moonshot streaming docs).
 	 * Kimi Coding (`api.kimi.com/coding`) may close the connection without sending `[DONE]`; set false for that endpoint.
@@ -133,6 +137,8 @@ interface KimiStreamChunk {
 	model: string;
 	choices: Array<{
 		index: number;
+		/** Some Moonshot examples nest the final usage here instead of at the top level. */
+		usage?: unknown;
 		delta: {
 			role?: string;
 			content?: string;
@@ -330,10 +336,12 @@ export class KimiApiClient {
 			model,
 			messages,
 			stream,
-			thinking: thinking
-				? { type: "enabled", keep: "all" }
-				: { type: "disabled" },
 		};
+		if (options?.thinkingParameter ?? true) {
+			body.thinking = thinking
+				? { type: "enabled", keep: "all" }
+				: { type: "disabled" };
+		}
 		if (stream) {
 			body.stream_options = { include_usage: true };
 		}
@@ -359,7 +367,7 @@ export class KimiApiClient {
 		if (options?.toolMode === vscode.LanguageModelChatToolMode.Auto) {
 			body.tool_choice = "auto";
 		} else if (options?.toolMode === vscode.LanguageModelChatToolMode.Required) {
-			body.tool_choice = "required";
+			body.tool_choice = (options.requiredToolChoice ?? true) ? "required" : "auto";
 		}
 
 		return JSON.stringify(body);

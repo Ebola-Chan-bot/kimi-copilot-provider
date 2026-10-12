@@ -11,6 +11,15 @@ export const PRESET_URLS = {
 	moonshotCN: "https://api.moonshot.cn/v1"
 } as const;
 
+/** Kimi Open Platform (api.moonshot.ai / api.moonshot.cn): pay-as-you-go keys, no subscription quota API. */
+export function isMoonshotPlatform(baseUrl: string): boolean {
+	try {
+		return /(^|\.)moonshot\.(ai|cn)$/.test(new URL(baseUrl).hostname);
+	} catch {
+		return false;
+	}
+}
+
 export function getApiBaseUrl(): string {
 	const config = vscode.workspace.getConfiguration(CONFIG_SECTION);
 	const endpoint = config.get<string>(ENDPOINT_KEY, "kimiCode");
