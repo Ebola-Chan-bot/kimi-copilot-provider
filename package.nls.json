@@ -1,6 +1,6 @@
 {
 	"extension.displayName": "Kimi Code Provider for Copilot",
-	"extension.description": "Bring your Kimi Code subscription to Copilot Chat and Agent mode, with automatic model discovery, thinking controls, live quota monitoring, and configuration diagnostics.",
+	"extension.description": "Use Kimi K3.1 Pro in VS Code Copilot Chat & Agent mode with your Kimi Code subscription. Automatic model discovery, thinking controls, live quota monitoring, and configuration diagnostics. Unofficial provider.",
 	"config.title": "Kimi",
 	"config.showUsageStatusBar.description": "Show Kimi Code account usage in the status bar. Refreshes every 60 seconds. Disabling stops usage polling.",
 	"config.endpoint.markdownDescription": "Select an API endpoint. When Custom is selected, the URL from #kimi.apiBaseUrl# is used.",

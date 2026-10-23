@@ -2,6 +2,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+> 🚀 **[Kimi K3.1 Pro](https://www.kimi.ai/blog/kimi-k3-1-pro) support is available now.** Use it directly in VS Code Copilot Chat and Agent mode with your own Kimi Code subscription.
+
 Use your Kimi Code subscription in VS Code Chat and Agent mode through a custom language model provider. The extension connects directly to the Kimi Code API using your own API key.
 
 Extension ID: `dreamyfishmt.dreamyfishmt-kimi-code`. This is not an official Kimi or GitHub extension.

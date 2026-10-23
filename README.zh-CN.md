@@ -2,6 +2,8 @@
 
 [English](README.md) | 简体中文
 
+> 🚀 **现已支持 [Kimi K3.1 Pro](https://www.kimi.ai/blog/kimi-k3-1-pro)。** 通过你的 Kimi Code 订阅，直接在 VS Code Copilot Chat 和 Agent 模式中使用。
+
 在 VS Code Chat 和 Agent 模式中使用你的 Kimi Code 订阅。扩展通过你自己的 API Key 直接连接 Kimi Code API。
 
 扩展 ID：`dreamyfishmt.dreamyfishmt-kimi-code`。本项目并非 Kimi 或 GitHub 官方扩展。

@@ -1,6 +1,6 @@
 {
 	"extension.displayName": "Kimi Code Provider for Copilot",
-	"extension.description": "在 Copilot Chat 与 Agent 模式中使用你的 Kimi Code 订阅，支持自动发现模型、思考控制、实时额度监控和配置诊断。",
+	"extension.description": "在 VS Code Copilot Chat 与 Agent 模式中使用 Kimi K3.1 Pro 和你的 Kimi Code 订阅，支持自动模型发现、思考控制、实时额度监控与配置诊断。非官方模型提供器。",
 	"config.title": "Kimi",
 	"config.showUsageStatusBar.description": "在状态栏显示 Kimi Code 账号用量，每 60 秒刷新一次。关闭后停止轮询用量。",
 	"config.endpoint.markdownDescription": "选择 API 端点。选择“自定义”时使用 #kimi.apiBaseUrl# 中的 URL。",
