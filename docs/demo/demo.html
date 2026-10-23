@@ -2,9 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>Kimi Code Demo</title>
+<title>Kimi Models for Copilot Demo</title>
 <!-- Mock VS Code window used to record images/demo.gif. See docs/demo/README.md. -->
-<link rel="stylesheet" href="codicons/codicon.css">
+<link rel="stylesheet" href="../../node_modules/@vscode/codicons/dist/codicon.css">
 <style>
 	:root {
 		--bg: #1f1f1f; --panel: #181818; --border: #2b2b2b; --fg: #cccccc; --muted: #9d9d9d;
@@ -274,10 +274,13 @@
 		<div class="it"><span class="ck codicon codicon-check"></span>Auto<span class="d">1x</span></div>
 	</div>
 	<div id="plist-kimi">
-		<div id="pm-k27" class="it"><span class="ck"></span>K2.7 Code Highspeed<span class="d">262K</span></div>
-		<div id="pm-k28" class="it"><span class="ck" id="ck-k28"></span>K2.8 Preview<span class="d" id="pm-k28-d">High · 1M <span id="pm-k28-more" class="codicon codicon-chevron-right" style="font-size:13px"></span></span></div>
+		<div class="grp">Pinned</div>
 		<div id="pm-k3" class="it"><span class="ck"></span>K3<span class="d"></span></div>
+		<div id="pm-k27" class="it"><span class="ck"></span>K2.7 Code Highspeed<span class="d"></span></div>
+		<div id="pm-k28" class="it"><span class="ck"></span>K2.8 Preview<span class="d"></span></div>
 		<div id="pm-k3s" class="it"><span class="ck"></span>K3-256k<span class="d"></span></div>
+		<div id="pm-k31" class="it"><span class="ck" id="ck-k31"></span>K3.1 Pro<span class="d" id="pm-k31-d">High · 1M <span id="pm-k31-more" class="codicon codicon-chevron-right" style="font-size:13px"></span></span></div>
+		<div id="pm-k31h" class="it"><span class="ck"></span>K3.1 Pro Highspeed<span class="d"></span></div>
 	</div>
 </div>
 <div id="effort-menu" class="menu" style="width:150px">
@@ -313,7 +316,7 @@
 	<div class="it">Custom Endpoint</div>
 </div>
 
-<div id="toast"><span class="codicon codicon-info"></span><div><div id="toast-text"></div><div class="src">Source: Kimi Code Provider for Copilot</div></div></div>
+<div id="toast"><span class="codicon codicon-info"></span><div><div id="toast-text"></div><div class="src">Source: Kimi Models for Copilot</div></div></div>
 
 <div id="hover">
 	<p><span class="codicon codicon-dashboard" style="font-size:14px"></span> <b>Kimi Code Usage</b></p>
@@ -334,8 +337,8 @@
 
 <div id="endcard">
 	<img class="logo" src="../../images/icon.png" alt="">
-	<h1>Kimi Code Provider for Copilot</h1>
-	<p>Your Kimi Code subscription in VS Code Chat and Agent mode</p>
+	<h1>Kimi Models for Copilot</h1>
+	<p>Kimi K3.1 Pro in VS Code Chat and Agent mode</p>
 	<div class="id">ext install dreamyfishmt.dreamyfishmt-kimi-code</div>
 </div>
 
@@ -379,7 +382,7 @@ const COMMANDS = [
 	"Kimi: Show Usage Actions",
 ];
 // Names, context sizes, and capabilities as reported by the Kimi Code models endpoint.
-const KIMI_MODELS = [["K2.7 Code Highspeed", "262K"], ["K2.8 Preview", "1M"], ["K3", "1M"], ["K3-256k", "262K"]];
+const KIMI_MODELS = [["K3", "1M"], ["K2.7 Code Highspeed", "262K"], ["K2.8 Preview", "1M"], ["K3-256k", "262K"], ["K3.1 Pro", "1M"], ["K3.1 Pro Highspeed", "1M"]];
 const TAGS = '<span class="tag">Tools</span><span class="tag">Vision</span>';
 function renderModelTable(withKimi, fresh) {
 	const group = (open, name) => `<tr class="g"><td class="ic"><span class="codicon codicon-chevron-${open ? "down" : "right"}"></span></td><td class="ic"><span class="codicon codicon-eye"></span></td><td colspan="4">${name}</td></tr>`;
@@ -404,8 +407,8 @@ const S = {
 const CAPTIONS = [
 	[S.step1, "1", "Pick your Kimi Code endpoint from the Command Palette"],
 	[S.step2, "2", "Add Models → Kimi, then paste your API key"],
-	[S.step3, "3", "Choose a Kimi model and its thinking effort"],
-	[S.step4, "4", "Chat or run Agent mode, powered by Kimi"],
+	[S.step3, "3", "Choose Kimi K3.1 Pro and its thinking effort"],
+	[S.step4, "4", "Chat or run Agent mode, powered by Kimi K3.1 Pro"],
 	[S.step5, "5", "Check your quota right from the status bar"],
 ];
 
@@ -415,7 +418,7 @@ const WAYPOINTS = [
 	[6.2, "model-chip"], [6.7, "="], [7.2, "ptab-add"], [7.5, "="],
 	[8.1, "add-models"], [8.4, "="], [8.9, "add-kimi"], [9.2, "="], [9.7, [700, 300]],
 	[11.2, [700, 300]], [11.9, "lm-close"], [12.2, "="],
-	[12.9, "model-chip"], [13.2, "="], [13.6, "pm-k28"], [13.9, "pm-k28-more"], [14.2, "="], [14.8, "em-max"], [15.1, "="],
+	[12.9, "model-chip"], [13.2, "="], [13.6, "pm-k31"], [13.9, "pm-k31-more"], [14.2, "="], [14.8, "em-max"], [15.1, "="],
 	[15.8, "prompt"], [17.5, "prompt"], [17.75, "send"], [18.2, "="], [19.1, [600, 420]],
 	[23.5, [600, 420]], [24.4, "usage"], [S.end, "="],
 ];
@@ -451,7 +454,7 @@ function render(t, withCursor = true) {
 
 	// Step 2: Language Models editor → Add Models → Kimi → API key.
 	const keyAdded = t >= S.keyEnter;
-	const k28 = t >= S.moreClick;
+	const k31Pro = t >= S.moreClick;
 	const effort = t >= S.maxClick ? "Max" : "High";
 	const pickerA = between(t, S.chipClick, S.plusClick), pickerB = between(t, S.chipClick2, S.maxClick);
 	show("picker", pickerA || pickerB);
@@ -461,10 +464,10 @@ function render(t, withCursor = true) {
 	$("ptab-add").classList.toggle("hi", between(t, 7.1, S.plusClick));
 	show("plist-copilot", !keyAdded);
 	show("plist-kimi", keyAdded);
-	$("pm-k28").classList.toggle("hi", t >= 13.5);
-	$("ck-k28").className = k28 ? "ck codicon codicon-check" : "ck";
-	$("pm-k28-d").style.visibility = t >= 13.5 ? "visible" : "hidden";
-	$("pm-k28-more").style.color = t >= 13.85 ? "#fff" : "";
+	$("pm-k31").classList.toggle("hi", t >= 13.5);
+	$("ck-k31").className = k31Pro ? "ck codicon codicon-check" : "ck";
+	$("pm-k31-d").style.visibility = t >= 13.5 ? "visible" : "hidden";
+	$("pm-k31-more").style.color = t >= 13.85 ? "#fff" : "";
 	show("lm", between(t, S.plusClick, S.closeClick));
 	renderModelTable(keyAdded, between(t, S.keyEnter, S.keyEnter + .9));
 	$("add-models").classList.toggle("hot", between(t, 8.0, S.kimiClick));
@@ -477,9 +480,9 @@ function render(t, withCursor = true) {
 	// Step 3: effort submenu opens from the model row's chevron.
 	show("effort-menu", between(t, S.moreClick, S.maxClick));
 	$("em-max").classList.toggle("hi", t >= 14.6);
-	$("chip-name").innerHTML = k28 ? `${KIMI_ICON}K2.8 Preview` : `<span class="codicon codicon-copilot"></span>Auto`;
-	$("chip-detail").textContent = k28 ? `${effort} · 1M` : "";
-	show("chip-detail", k28, "inline-flex");
+	$("chip-name").innerHTML = k31Pro ? `${KIMI_ICON}K3.1 Pro` : `<span class="codicon codicon-copilot"></span>Auto`;
+	$("chip-detail").textContent = k31Pro ? `${effort} · 1M` : "";
+	show("chip-detail", k31Pro, "inline-flex");
 	$("model-chip").classList.toggle("hot", pickerA || pickerB || between(t, S.chipClick - .25, S.chipClick) || between(t, S.chipClick2 - .25, S.chipClick2));
 
 	// Step 4: chat.
@@ -518,7 +521,7 @@ function render(t, withCursor = true) {
 
 	// Popups are positioned after their content is set.
 	placeAbove("picker", "model-chip");
-	const pr = $("picker").getBoundingClientRect(), row = $("pm-k28").getBoundingClientRect(), em = $("effort-menu");
+	const pr = $("picker").getBoundingClientRect(), row = $("pm-k31").getBoundingClientRect(), em = $("effort-menu");
 	em.style.left = `${pr.left - em.offsetWidth - 4}px`;
 	em.style.top = `${row.top - 30}px`;
 	const ab = $("add-models").getBoundingClientRect(), am = $("add-menu");

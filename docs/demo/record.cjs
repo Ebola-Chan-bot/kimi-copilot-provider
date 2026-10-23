@@ -16,7 +16,7 @@ const codicons = path.dirname(require.resolve("@vscode/codicons/dist/codicon.css
 	const browser = await chromium.launch(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {});
 	try {
 		const page = await browser.newPage({ viewport: { width: 1000, height: 620 }, deviceScaleFactor: 1 });
-		await page.route("**/codicons/*", route => route.fulfill({ path: path.join(codicons, path.basename(new URL(route.request().url()).pathname)) }));
+		await page.route("**/codicon.*", route => route.fulfill({ path: path.join(codicons, path.basename(new URL(route.request().url()).pathname)) }));
 		await page.goto(`file://${path.join(__dirname, "demo.html")}`);
 		await page.waitForFunction(() => window.DEMO?.ready);
 		const duration = await page.evaluate(() => window.DEMO.duration);

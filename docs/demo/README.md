@@ -2,7 +2,7 @@
 
 `images/demo.gif` is rendered from `demo.html`, a scripted mock of the VS Code window that follows the README quick start. Its labels, commands, and status bar text mirror the extension's real UI strings; update them here when the UI changes.
 
-Open `demo.html` in a browser to preview the animation (icons need the codicons below). To regenerate the GIF, you need Node.js, ffmpeg, and Chromium for Playwright:
+Run the install command below before opening `demo.html` directly in a browser; the preview loads Codicons from `node_modules`. To regenerate the GIF, you also need ffmpeg and Chromium for Playwright:
 
 ```sh
 npm install --no-save playwright @vscode/codicons
